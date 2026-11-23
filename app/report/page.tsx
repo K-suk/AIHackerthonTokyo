@@ -2,6 +2,7 @@ import AppHeader from "@/components/AppHeader";
 import { toBusinessDate } from "@/lib/business-date";
 import { getCatalog } from "@/lib/db/catalog";
 import { listEventsByDate } from "@/lib/db/events";
+import { suggestOrders } from "@/lib/db/materials";
 import { listOrdersByDate } from "@/lib/db/orders";
 import { getReport } from "@/lib/db/reports";
 import { aggregateDay } from "@/lib/report";
@@ -24,11 +25,12 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   let error: string | null = null;
 
   try {
-    const [orders, loadedEvents, catalog, saved] = await Promise.all([
+    const [orders, loadedEvents, catalog, saved, suggestions] = await Promise.all([
       listOrdersByDate(businessDate),
       listEventsByDate(businessDate),
       getCatalog(),
       getReport(businessDate),
+      suggestOrders(businessDate),
     ]);
     events = loadedEvents;
     savedBody = saved;
@@ -36,6 +38,8 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     summary = {
       salesTotal: aggregate.salesTotal,
       orderCount: aggregate.orderCount,
+      cancelledCount: orders.length - aggregate.orderCount,
+      suggestions,
       counterCount: aggregate.counterCount,
       phoneCount: aggregate.phoneCount,
       itemQuantities: aggregate.itemQuantities,

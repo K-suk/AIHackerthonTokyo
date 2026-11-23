@@ -26,7 +26,7 @@ export function aggregateDay(orders: ConfirmedOrder[], events: EventMemo[]): Day
   const hourMap = new Map<number, number>();
   for (const order of confirmed) {
     hourMap.set(tokyoHour(order.confirmedAt), (hourMap.get(tokyoHour(order.confirmedAt)) ?? 0) + 1);
-    for (const line of order.ticket.lines) {
+    for (const line of order.ticket.lines ?? []) {
       itemMap.set(line.name, (itemMap.get(line.name) ?? 0) + line.item.quantity);
       for (const optionId of line.item.optionIds) {
         optionMap.set(optionId, (optionMap.get(optionId) ?? 0) + line.item.quantity);

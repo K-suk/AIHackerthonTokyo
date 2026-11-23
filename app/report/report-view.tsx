@@ -5,11 +5,13 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import VoiceInput from "@/components/VoiceInput";
 import { eventCategoryLabel } from "@/lib/report";
-import type { EventCategory, EventMemo } from "@/lib/types";
+import type { EventCategory, EventMemo, OrderSuggestion } from "@/lib/types";
 
 export type ReportSummary = {
   salesTotal: number;
   orderCount: number;
+  cancelledCount: number;
+  suggestions: OrderSuggestion[];
   counterCount: number;
   phoneCount: number;
   itemQuantities: { name: string; quantity: number }[];
@@ -174,9 +176,17 @@ export default function ReportView({
         <div><span>注文件数</span><strong>{summary.orderCount}件</strong></div>
         <div><span>対面 / 電話</span><strong>{summary.counterCount} / {summary.phoneCount}</strong></div>
       </div>
+      <p className="report-line"><b>取消：</b>{summary.cancelledCount}件</p>
       <p className="report-line"><b>品目別：</b>{summary.itemQuantities.map((item) => item.name + " " + item.quantity).join("、") || "なし"}</p>
       {summary.topOptions.length > 0 &&
         <p className="report-line"><b>よく出たカスタム：</b>{summary.topOptions.map((option) => option.name + " " + option.count + "回").join("、")}</p>}
+    </section>
+
+    <section className="report-card">
+      <h2>明日の発注予定</h2>
+      {summary.suggestions.length > 0
+        ? <ul>{summary.suggestions.map((item) => <li key={item.materialId}>{item.name} {item.units}{item.unitLabel}</li>)}</ul>
+        : <p>発注候補はありません。</p>}
     </section>
 
     <section className="report-card">

@@ -33,7 +33,12 @@ export async function applyConsumption(
   await tx`select id from orders where id = ${orderId} for update`;
   const [prior] = await tx`select 1 from stock_movements where order_id = ${orderId} and reason = 'order' limit 1`;
   if (prior) return;
-  for (const materialId of [...consumption.keys()].sort()) {
+  const materialIds = [...consumption.keys()].sort();
+  if (!materialIds.length) return;
+  const registered = await tx<{ id: string }[]>`select id from materials where id in ${tx(materialIds)}`;
+  const registeredIds = new Set(registered.map(({ id }) => id));
+  for (const materialId of materialIds) {
+    if (!registeredIds.has(materialId)) continue;
     const qty = consumption.get(materialId) ?? 0;
     if (qty > 0) await moveStock(tx, materialId, -qty, "order", createdBy, { orderId });
   }
