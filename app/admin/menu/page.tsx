@@ -1,14 +1,18 @@
+import { connection } from "next/server";
 import AppHeader from "@/components/AppHeader";
+import { staffNames } from "@/app/api/inventory/access";
+import MenuPanel from "./menu-panel";
+import styles from "./menu.module.css";
 
 export const metadata = { title: "メニュー管理 — 声レジ" };
 
-// 友達の担当（メニュー管理）。Step 0 は仮ページ。
-export default function AdminMenuPage() {
+export default async function AdminMenuPage() {
+  await connection();
   return <main className="page">
     <AppHeader />
-    <section className="page-body">
+    <section className={styles.workspace}>
       <h1>メニュー管理</h1>
-      <p className="placeholder">準備中です（メニュー管理：担当は別メンバー）。</p>
+      <MenuPanel staff={staffNames()} configured={Boolean(process.env.STORE_PASSCODE_HASH)} localPhotos={!process.env.VERCEL} />
     </section>
   </main>;
 }

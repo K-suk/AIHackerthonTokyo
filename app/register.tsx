@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import AppHeader from "@/components/AppHeader";
 import { priceLabel } from "@/lib/menu";
+import { categoriesFor } from "@/lib/menu-categories";
+import { menuPhoto } from "@/lib/menu-photos";
 import { applyVoiceCancellations, buildTicket, confirmBlockReason, demos, emptyOrder, hasPickup, orderItem } from "@/lib/order";
 import type { CancellationChoice, ParsedItem, ParsedOrder, Ticket, VoiceCancellation } from "@/lib/order";
 import { eventCategoryLabel } from "@/lib/report";
@@ -14,18 +16,6 @@ import { useRecording } from "./use-recording";
 
 type Mode = "auto" | "order" | "event";
 const modeLabels: Record<Mode, string> = { auto: "自動", order: "注文", event: "出来事" };
-
-const categories = [
-  { id: "all", label: "すべて" },
-  { id: "set", label: "セット" },
-  { id: "coffee", label: "コーヒー" },
-  { id: "tea", label: "ティー・その他" },
-  { id: "frozen", label: "フローズン" },
-  { id: "seasonal", label: "期間限定" },
-  { id: "pizza", label: "ピザ" },
-  { id: "pasta", label: "パスタ" },
-  { id: "food", label: "フード" },
-] as const;
 
 const queueStorageKey = "koe-register:pickups:v1";
 const todayInTokyo = () => new Intl.DateTimeFormat("sv-SE", { dateStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date());
@@ -41,15 +31,13 @@ type Draft = {
 type VoiceInput = { transcript: string } | { audio: Blob; recordingId: string };
 type RequestInfo = { sample: string } | (VoiceInput & { additionTo?: Draft });
 type Status = "ready" | "transcribing" | "analyzing" | "done" | "error";
-type Category = typeof categories[number]["id"];
 
 const emptyDraft: Draft = { ticket: buildTicket(emptyOrder), transcript: "" };
 
-function ImageTile({ id, thumbnail = false }: { id: string; thumbnail?: boolean }) {
-  const [failedId, setFailedId] = useState<string>();
+function ImageTile({ src, thumbnail = false }: { src: string | null; thumbnail?: boolean }) {
+  const [failedSrc, setFailedSrc] = useState<string>();
   return <span className={thumbnail ? "thumbnail" : "product-photo"}>
-    {failedId !== id && <Image src={"/menu/" + encodeURIComponent(id) + ".jpg"} alt="" fill unoptimized
-      onError={() => setFailedId(id)} />}
+    {src && failedSrc !== src && <Image src={src} alt="" fill unoptimized onError={() => setFailedSrc(src)} />}
   </span>;
 }
 
@@ -65,7 +53,7 @@ function statusMessage(status: Status, recording: ReturnType<typeof useRecording
 }
 
 export default function Register({ browserRecording, catalog }: { browserRecording: boolean; catalog: Catalog }) {
-  const [category, setCategory] = useState<Category>("all");
+  const [category, setCategory] = useState("all");
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [editor, setEditor] = useState<number | null>(null);
@@ -80,7 +68,7 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   const [eventNotice, setEventNotice] = useState("");
   const requestRef = useRef<AbortController | null>(null);
   const retryRef = useRef<RequestInfo | null>(null);
-  const confirmKeyRef = useRef<string | null>(null);
+  const confirmKeyRef = useRef<{ key: string; order: string } | null>(null);
   const waveformRef = useRef<HTMLSpanElement>(null);
   const pickupPanelRef = useRef<HTMLDetailsElement>(null);
 
@@ -321,6 +309,7 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   }
 
   function newOrder() {
+    confirmKeyRef.current = null;
     setDraft(emptyDraft);
     setEditor(null);
     setTextEntry(false);
@@ -340,7 +329,11 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
     if (confirming || !canConfirm) return;
     setConfirming(true);
     setError("");
-    const key = confirmKeyRef.current ?? (confirmKeyRef.current = crypto.randomUUID());
+    const orderSnapshot = JSON.stringify(order);
+    if (confirmKeyRef.current?.order !== orderSnapshot) {
+      confirmKeyRef.current = { key: crypto.randomUUID(), order: orderSnapshot };
+    }
+    const key = confirmKeyRef.current.key;
     try {
       const result = await fetch("/api/orders/confirm", {
         method: "POST",
@@ -361,14 +354,15 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
     }
   }
 
-  const section = [...catalog.products, ...catalog.sets.map((set) => ({ ...set, category: "set" }))]
-    .filter((product) => !product.discontinued && (category === "all" || product.category === category));
-  const loading = busy || capturing;
+  const entries = [...catalog.products, ...catalog.sets.map((set) => ({ ...set, category: "set" }))];
+  const categories = [{ id: "all", label: "すべて" }, ...categoriesFor(catalog.products.filter((item) => !item.discontinued))];
+  const section = entries.filter((product) => !product.discontinued && (category === "all" || product.category === category));
+  const loading = busy || capturing || confirming;
 
   return <main className="register">
     <header className="toolbar">
       <h1 className="brand"><Image src="/koereji-logo.svg" alt="声レジ" width={60} height={60} unoptimized /></h1>
-      <button type="button" className="record-button" data-recording={capturing} disabled={busy} onClick={toggleRecording}>
+      <button type="button" className="record-button" data-recording={capturing} disabled={busy || confirming} onClick={toggleRecording}>
         <span className="mic" aria-hidden="true" />
         {recording.state === "recording" ? "録音を終了" : capturing ? "マイク準備を取り消す" : hasTicket ? "追加・取消を録音" : "録音開始"}
       </button>
@@ -430,7 +424,7 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
               const count = order.items.filter((item) => item.menuId === product.id).reduce((sum, item) => sum + item.quantity, 0);
               return <button type="button" key={product.id} className="product-card" data-selected={count > 0} disabled={loading}
                 onClick={() => addProduct(product.id)} aria-label={product.name + "を追加"}>
-                <ImageTile id={product.id} />
+                <ImageTile src={menuPhoto(product.id, product)} />
                 {count > 0 && <span className="product-count" aria-label={"注文数 " + count}>{count}</span>}
                 <span className="product-info"><strong>{product.name}</strong><span>{priceLabel(product.price)}</span></span>
               </button>;
@@ -464,7 +458,8 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
                 <button type="button" className="line-summary" disabled={loading} aria-expanded={editor === index}
                   aria-controls={editor === index ? "line-" + index + "-editor" : undefined}
                   onClick={() => setEditor(editor === index ? null : index)}>
-                  {line.imageId ? <ImageTile id={line.imageId} thumbnail /> : <span className="thumbnail missing" aria-hidden="true">?</span>}
+                  {line.imageId ? <ImageTile src={menuPhoto(line.imageId, entries.find((entry) => entry.id === line.imageId))} thumbnail />
+                    : <span className="thumbnail missing" aria-hidden="true">?</span>}
                   <span className="line-description">
                     <strong>{line.name}</strong>
                     {line.details.map((detail) => <small key={detail}>{detail}</small>)}

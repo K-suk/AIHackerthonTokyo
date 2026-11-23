@@ -14,8 +14,9 @@ const itemFields = {
   price,
   soldOut: z.boolean().optional(),
   discontinued: z.boolean().optional(),
+  photo: z.string().optional(),
 };
-const product = z.object({
+export const productSchema = z.object({
   ...itemFields,
   category: name,
   temperature: z.enum(["hot", "ice"]).optional(),
@@ -24,12 +25,12 @@ const product = z.object({
   optionGroupIds: z.array(name),
   recipe: recipe.optional(),
 });
-const menuSet = z.object({
+export const menuSetSchema = z.object({
   ...itemFields,
   includedItems: z.array(name),
   drinkChoices: z.array(z.object({ productId: name, priceDiff: z.number().int() })),
 });
-const option = z.object({
+export const optionSchema = z.object({
   name,
   aliases: z.array(name),
   priceDiff: z.number().int(),
@@ -43,8 +44,8 @@ const optionGroup = z.object({
 });
 export const catalogSchema = z.object({
   currency: z.string().optional(),
-  products: z.array(product),
-  sets: z.array(menuSet),
-  options: z.record(name, option),
+  products: z.array(productSchema),
+  sets: z.array(menuSetSchema),
+  options: z.record(name, optionSchema),
   optionGroups: z.record(name, optionGroup),
 });
