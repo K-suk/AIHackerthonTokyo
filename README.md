@@ -20,3 +20,9 @@ npm run dev -- --hostname 127.0.0.1
 モックメニューは `fukusho-menu-mock.json`、開発フェーズと完了条件は [実装計画](koe-register-implementation-plan.md) にあります。
 
 `DATABASE_URL` を設定すると、メニュー表示と注文解析はDBのカタログを優先します。既存のDBにモックの追加商品だけを取り込むには `npm run seed -- --add-missing-menu` を使います。登録済みの商品、オプション、材料在庫はそのままです。
+
+## 在庫管理
+
+初期スキーマを適用済みのDBで `npm run seed` を実行すると、デモ用の材料が登録されます。 `STORE_PASSCODE_HASH` を設定してサーバーを再起動し、`/inventory` で担当者と店舗パスコードを入力します。
+
+音声操作の解釈だけを試す場合は `./node_modules/.bin/tsx scripts/check-inventory-voice.ts` を実行できます。架空の指示とモックデータを OpenAI に送り、在庫への書き込みは行いません。Postgres の在庫テストは、初期スキーマとデモ材料を投入した専用ローカルDB `koe_inventory_test` の接続先を `INVENTORY_TEST_DATABASE_URL` に渡して `npm test` を実行します。

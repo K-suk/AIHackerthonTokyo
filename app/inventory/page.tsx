@@ -1,14 +1,22 @@
+import { connection } from "next/server";
 import AppHeader from "@/components/AppHeader";
+import { staffNames } from "@/app/api/inventory/access";
+import InventoryPanel from "./panel";
+import styles from "./inventory.module.css";
 
 export const metadata = { title: "在庫 — 声レジ" };
 
-// 友達の担当（在庫管理）。Step 0 は仮ページ。
-export default function InventoryPage() {
+export default async function InventoryPage() {
+  await connection();
   return <main className="page">
     <AppHeader />
-    <section className="page-body">
+    <section className={styles.workspace}>
       <h1>在庫</h1>
-      <p className="placeholder">準備中です（在庫管理：担当は別メンバー）。</p>
+      <InventoryPanel
+        staff={staffNames()}
+        voiceEnabled={Boolean(process.env.AQUA_API_KEY?.trim() && process.env.OPENAI_API_KEY?.trim())}
+        configured={Boolean(process.env.STORE_PASSCODE_HASH)}
+      />
     </section>
   </main>;
 }
