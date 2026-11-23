@@ -1,0 +1,12 @@
+[
+  { "id": "milk", "name": "牛乳", "unit": "ml", "stock": 3000, "reorderPoint": 2000, "orderUnit": 1000, "orderUnitLabel": "本" },
+  { "id": "oat_milk", "name": "オーツミルク", "unit": "ml", "stock": 2000, "reorderPoint": 1000, "orderUnit": 1000, "orderUnitLabel": "本" },
+  { "id": "soy_milk", "name": "豆乳", "unit": "ml", "stock": 2000, "reorderPoint": 1000, "orderUnit": 1000, "orderUnitLabel": "本" },
+  { "id": "espresso_beans", "name": "エスプレッソ豆", "unit": "g", "stock": 1000, "reorderPoint": 500, "orderUnit": 1000, "orderUnitLabel": "袋" },
+  { "id": "cold_brew", "name": "コールドブリュー原液", "unit": "ml", "stock": 2000, "reorderPoint": 1000, "orderUnit": 1000, "orderUnitLabel": "本" },
+  { "id": "vanilla_syrup", "name": "バニラシロップ", "unit": "ml", "stock": 750, "reorderPoint": 200, "orderUnit": 750, "orderUnitLabel": "本" },
+  { "id": "cheesecake", "name": "チーズケーキ", "unit": "pcs", "stock": 12, "reorderPoint": 4, "orderUnit": 6, "orderUnitLabel": "箱" },
+  { "id": "croissant", "name": "クロワッサン", "unit": "pcs", "stock": 20, "reorderPoint": 8, "orderUnit": 10, "orderUnitLabel": "袋" },
+  { "id": "sandwich", "name": "サンドイッチ", "unit": "pcs", "stock": 12, "reorderPoint": 4, "orderUnit": 6, "orderUnitLabel": "箱" },
+  { "id": "mini_salad", "name": "ミニサラダ", "unit": "pcs", "stock": 12, "reorderPoint": 4, "orderUnit": 6, "orderUnitLabel": "箱" }
+]

@@ -1,0 +1,55 @@
+.workspace {
+  width: min(1040px, 100%);
+  margin-inline: auto;
+  padding: 24px 16px;
+  display: grid;
+  gap: 14px;
+}
+.workspace h1 { font-size: 1.5rem; }
+.workspace h2 { font-size: 1.06rem; }
+.workspace input, .workspace select, .workspace button:not(:global(.record-button)) {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.workspace button.primary {
+  background: var(--accent-deep);
+  color: white;
+  border-color: var(--accent-deep);
+}
+.access, .card, .textInput, .result {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--paper);
+}
+.access { display: grid; gap: 10px; max-width: 360px; }
+.access label, .filter { display: grid; gap: 5px; }
+.session, .result { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.session { flex-wrap: wrap; color: var(--muted); font-size: .85rem; }
+.session button + button, .card td button + button { margin-inline-start: 5px; }
+.textInput form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.textInput input { flex: 1 1 210px; min-width: 0; }
+.textInput summary { cursor: pointer; color: var(--accent-deep); }
+.error { color: #952e39; padding: 10px; background: #fff0f0; border-radius: 8px; }
+.result { background: var(--accent-soft); }
+.result ul, .history, .menu { list-style: none; margin: 0; padding: 0; }
+.result ul { display: grid; gap: 4px; }
+.card { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 10px; }
+.tableScroll { overflow: auto; }
+.card table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+.card th, .card td { padding: 7px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: start; }
+.card thead th { color: var(--muted); }
+.card tr[data-low=true] { background: var(--warn-bg); color: var(--warn); }
+.card td[data-negative=true] { color: #952e39; font-weight: 800; }
+.card td input { width: 100px; }
+.filter { max-width: 320px; font-size: .85rem; color: var(--muted); }
+.menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 6px 12px; max-height: 320px; overflow: auto; }
+.menu li { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-bottom: 1px solid var(--line); }
+.menu button { white-space: nowrap; }
+.workspace .menu button[aria-checked=true] { background: var(--warn-bg); color: var(--warn); }
+.history li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.history span { color: var(--muted); font-size: .85rem; }

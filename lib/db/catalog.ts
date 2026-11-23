@@ -1,6 +1,7 @@
 import fixture from "../../fukusho-menu-mock.json";
 import type { Catalog } from "../types";
 import { getSql, isDbConfigured } from "./client";
+import type { Tx } from "./client";
 
 // カタログ（メニュー）の読み書き。
 // 注文1件の処理でDBを何度も読まないよう、メモリにキャッシュする。
@@ -27,20 +28,24 @@ type DbResult =
 async function readFromDb(): Promise<DbResult> {
   if (!isDbConfigured()) return { ok: false, reason: "DATABASE_URL 未設定" };
   try {
+    const previous = cache;
     const sql = getSql();
-    const rows = await sql<{ json: Catalog; version: number }[]>`
-      select json, version from catalog where id = 1
+    const rows = await sql<{ json: Catalog | null; version: number }[]>`
+      select case when version = ${previous?.version ?? null}::integer then null else json end as json, version
+      from catalog where id = 1
     `;
     if (rows.length === 0) return { ok: false, reason: "catalog 未投入（npm run seed）" };
-    return { ok: true, catalog: rows[0].json, version: rows[0].version };
+    const snapshot = rows[0];
+    const catalog = snapshot.json ?? previous?.catalog;
+    if (!catalog) return { ok: false, reason: "catalog の読み込みに失敗" };
+    return { ok: true, catalog, version: snapshot.version };
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : "DB読み取り失敗" };
   }
 }
 
-// メモリキャッシュ付き。2回目以降はDBを読まない。
+// DB のバージョンを確認し、変更があったときだけ JSON を取り直す。
 export async function getCatalog(): Promise<Catalog> {
-  if (cache) return cache.catalog;
   const result = await readFromDb();
   if (result.ok) {
     noteSource("db");
@@ -69,6 +74,20 @@ export async function saveCatalog(catalog: Catalog, updatedBy: string): Promise<
   cache = { catalog, version: row.version };
   lastSource = "db";
   return row.version;
+}
+
+export async function lockCatalog(tx: Tx): Promise<Catalog> {
+  const [row] = await tx<{ json: Catalog }[]>`select json from catalog where id = 1 for update`;
+  if (!row) throw new Error("メニューの初期データがありません。");
+  return row.json;
+}
+
+export async function writeLockedCatalog(tx: Tx, catalog: Catalog, updatedBy: string): Promise<void> {
+  await tx`
+    update catalog set json = ${tx.json(catalog as unknown as Parameters<typeof tx.json>[0])},
+      version = version + 1, updated_at = clock_timestamp(), updated_by = ${updatedBy}
+    where id = 1
+  `;
 }
 
 // テスト・シードから使う内部用（キャッシュ破棄）。
