@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { menu, priceLabel } from "@/lib/menu";
-import { buildTicket, demos, emptyOrder, hasPickup, orderItem } from "@/lib/order";
-import type { ParsedItem, ParsedOrder, Ticket } from "@/lib/order";
+import { applyVoiceCancellations, buildTicket, demos, emptyOrder, hasPickup, orderItem } from "@/lib/order";
+import type { CancellationChoice, ParsedItem, ParsedOrder, Ticket, VoiceCancellation } from "@/lib/order";
 import LineEditor from "./line-editor";
 import { useRecording } from "./use-recording";
 
@@ -21,7 +21,13 @@ const queueStorageKey = "koe-register:pickups:v1";
 const todayInTokyo = () => new Intl.DateTimeFormat("sv-SE", { dateStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date());
 
 type Pickup = { id: string; date: string; time: string; name: string; ticket: Ticket; transcript: string };
-type Draft = { ticket: Ticket; transcript: string; pickupId?: string };
+type Draft = {
+  ticket: Ticket;
+  transcript: string;
+  pickupId?: string;
+  cancellationChoices?: CancellationChoice[];
+  cancellationNotice?: string;
+};
 type VoiceInput = { transcript: string } | { audio: Blob; recordingId: string };
 type RequestInfo = { sample: string } | (VoiceInput & { additionTo?: Draft });
 type Status = "ready" | "transcribing" | "analyzing" | "done" | "error";
@@ -72,7 +78,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
   const capturing = recording.state !== "idle";
   const showPickupForm = hasTicket && hasPickup(order);
   const needsPickupDetails = showPickupForm && (!order.customerName?.trim() || !order.pickupTime);
-  const needsAttention = hasTicket && (ticket.total === null || needsPickupDetails);
+  const needsAttention = Boolean(draft.cancellationChoices?.length) || (hasTicket && (ticket.total === null || needsPickupDetails));
   const message = statusMessage(status, recording.state, needsAttention);
 
   useEffect(() => {
@@ -169,13 +175,15 @@ export default function Register({ browserRecording }: { browserRecording: boole
       const payload = await result.json();
       if (!result.ok) throw new Error(payload.error);
       const nextTicket = payload.ticket as Ticket;
+      const cancellations: VoiceCancellation[] = payload.cancellations ?? [];
       if (base) {
         const previous = base.ticket.order;
         const added = nextTicket.order;
+        const revised = applyVoiceCancellations(base.ticket, cancellations);
         updateDraft({
           ...base,
           ticket: buildTicket({
-            items: [...previous.items, ...added.items],
+            items: [...revised.items, ...added.items],
             unparsed: [...previous.unparsed, ...added.unparsed],
             pickupRequested: hasPickup(previous) || hasPickup(added),
             customerName: previous.customerName || added.customerName,
@@ -183,9 +191,15 @@ export default function Register({ browserRecording }: { browserRecording: boole
             pickupDate: previous.pickupDate || added.pickupDate,
           }),
           transcript: [base.transcript, payload.transcript].filter(Boolean).join("\n"),
+          cancellationChoices: revised.choices,
+          cancellationNotice: revised.removedCount ? "注文を取り消しました。" : undefined,
         });
       } else {
-        updateDraft({ ticket: nextTicket, transcript: payload.transcript });
+        updateDraft({
+          ticket: nextTicket,
+          transcript: payload.transcript,
+          cancellationNotice: cancellations.length > 0 ? "注文内容を確認してください。" : undefined,
+        });
       }
       retryRef.current = null;
       setTextEntry(false);
@@ -204,8 +218,20 @@ export default function Register({ browserRecording }: { browserRecording: boole
   }
 
   function editOrder(patch: Partial<ParsedOrder>) {
-    updateDraft({ ...draft, ticket: buildTicket({ ...order, ...patch }) });
+    updateDraft({ ...draft, ticket: buildTicket({ ...order, ...patch }), cancellationChoices: undefined, cancellationNotice: undefined });
     setStatus("done");
+  }
+
+  function resolveCancellation(index: number, item?: ParsedItem) {
+    const remaining = (draft.cancellationChoices ?? [])
+      .filter((_, position) => position !== index)
+      .map((choice) => ({ ...choice, candidates: choice.candidates.filter((line) => line.item !== item) }));
+    updateDraft({
+      ...draft,
+      ticket: item ? buildTicket({ ...order, items: order.items.filter((line) => line !== item) }) : ticket,
+      cancellationChoices: remaining,
+      cancellationNotice: item ? "注文を取り消しました。" : draft.cancellationNotice,
+    });
   }
 
   function updateItem(index: number, patch: Partial<ParsedItem>) {
@@ -261,7 +287,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
       <h1 className="brand"><Image src="/koereji-logo.svg" alt="声レジ" width={60} height={60} unoptimized /></h1>
       <button type="button" className="record-button" data-recording={capturing} disabled={busy} onClick={toggleRecording}>
         <span className="mic" aria-hidden="true" />
-        {recording.state === "recording" ? "録音を終了" : capturing ? "マイク準備を取り消す" : hasTicket ? "追加を録音" : "録音開始"}
+        {recording.state === "recording" ? "録音を終了" : capturing ? "マイク準備を取り消す" : hasTicket ? "追加・取消を録音" : "録音開始"}
       </button>
     </header>
 
@@ -341,6 +367,17 @@ export default function Register({ browserRecording }: { browserRecording: boole
             </div>}
 
             <div className="ticket-items">
+              {draft.cancellationNotice && <p className="ticket-notice" role="status">{draft.cancellationNotice}</p>}
+              {draft.cancellationChoices?.map((choice, index) => <div key={index} className="inline-warning" data-uncertain="true">
+                <p>{choice.candidates.length ? "「" + choice.target + "」の取り消し対象を選んでください。" : "「" + choice.target + "」に該当する商品が伝票にありません。"}</p>
+                <div className="option-buttons">
+                  {choice.candidates.map((line, position) => <button type="button" disabled={loading} key={position}
+                    onClick={() => resolveCancellation(index, line.item)}>
+                    {line.name} ×{line.item.quantity}{line.details.length > 0 ? "（" + line.details.join("・") + "）" : ""}
+                  </button>)}
+                  <button type="button" disabled={loading} onClick={() => resolveCancellation(index)}>閉じる</button>
+                </div>
+              </div>)}
               {!hasTicket && <div className="empty-order"><span aria-hidden="true">▤</span><p>まだ注文がありません</p></div>}
               {ticket.lines.map((line, index) => <article key={index} className="ticket-line">
                 <button type="button" className="line-summary" disabled={loading} aria-expanded={editor === index}

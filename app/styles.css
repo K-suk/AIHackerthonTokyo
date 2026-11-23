@@ -231,6 +231,7 @@ h1, h2, p { margin: 0; }
 .inline-warning { background: #fff0f0; color: #952e39; border-radius: 8px; padding: 9px 10px; margin: 4px 0; font-size: .8rem; }
 .inline-warning[data-uncertain=true] { background: var(--warn-bg); color: var(--warn); }
 .inline-warning p { font-weight: 680; }
+.ticket-notice { padding: 9px 0; color: var(--accent-deep); font-size: .8rem; }
 .unparsed { margin-block: 8px; }
 .unparsed ul { margin: 4px 0 8px; padding-inline-start: 20px; }
 .line-editor { padding: 10px; border-radius: 8px; background: #f4f7f6; margin-block: 4px; }

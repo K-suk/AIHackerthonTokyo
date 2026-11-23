@@ -39,6 +39,27 @@ export type Ticket = {
   total: number | null;
 };
 
+export type VoiceCancellation = { target: string; lineNumbers: number[] };
+
+export type CancellationChoice = { target: string; candidates: TicketLine[] };
+
+export function applyVoiceCancellations(ticket: Ticket, cancellations: VoiceCancellation[]) {
+  const removed = new Set<TicketLine>();
+  const choices: CancellationChoice[] = [];
+  for (const { target, lineNumbers } of cancellations) {
+    const candidates = [...new Set(lineNumbers)]
+      .filter((number) => Number.isSafeInteger(number) && number > 0 && number <= ticket.lines.length)
+      .map((number) => ticket.lines[number - 1]);
+    if (candidates.length === 1) removed.add(candidates[0]);
+    else choices.push({ target, candidates });
+  }
+  return {
+    items: ticket.lines.filter((line) => !removed.has(line)).map((line) => line.item),
+    choices: choices.map(({ target, candidates }) => ({ target, candidates: candidates.filter((line) => !removed.has(line)) })),
+    removedCount: removed.size,
+  };
+}
+
 export const emptyOrder: ParsedOrder = {
   items: [],
   pickupRequested: false,
