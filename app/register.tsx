@@ -198,7 +198,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
         updateDraft({
           ticket: nextTicket,
           transcript: payload.transcript,
-          cancellationNotice: cancellations.length > 0 ? "注文内容を確認してください。" : undefined,
+          cancellationNotice: cancellations.length > 0 ? "注文を取り消しました。" : undefined,
         });
       }
       retryRef.current = null;

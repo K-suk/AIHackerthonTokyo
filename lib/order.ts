@@ -47,10 +47,11 @@ export function applyVoiceCancellations(ticket: Ticket, cancellations: VoiceCanc
   const removed = new Set<TicketLine>();
   const choices: CancellationChoice[] = [];
   for (const { target, lineNumbers } of cancellations) {
-    const candidates = [...new Set(lineNumbers)]
+    const requested = [...new Set(lineNumbers)];
+    const candidates = requested
       .filter((number) => Number.isSafeInteger(number) && number > 0 && number <= ticket.lines.length)
       .map((number) => ticket.lines[number - 1]);
-    if (candidates.length === 1) removed.add(candidates[0]);
+    if (requested.length === 1 && candidates.length === 1) removed.add(candidates[0]);
     else choices.push({ target, candidates });
   }
   return {
