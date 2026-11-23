@@ -1,0 +1,10 @@
+.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.totals div, .section { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); padding: 12px; }
+.totals dt { color: var(--muted); font-size: .8rem; }
+.totals dd { margin: 4px 0 0; color: var(--ink); font-size: clamp(.96rem, 3.3vw, 1.35rem); font-weight: 750; }
+.section { display: grid; gap: 8px; }
+.section h2 { font-size: 1.05rem; }
+.section p { color: var(--muted); font-size: .86rem; }
+.section ul { margin: 0; padding: 0; list-style: none; }
+.section li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+.section li strong { white-space: nowrap; }

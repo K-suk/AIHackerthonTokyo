@@ -74,7 +74,7 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   const [confirmNotice, setConfirmNotice] = useState("");
   const requestRef = useRef<AbortController | null>(null);
   const retryRef = useRef<RequestInfo | null>(null);
-  const confirmKeyRef = useRef<string | null>(null);
+  const confirmKeyRef = useRef<{ key: string; order: string } | null>(null);
   const waveformRef = useRef<HTMLSpanElement>(null);
   const pickupPanelRef = useRef<HTMLDetailsElement>(null);
 
@@ -289,6 +289,7 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   }
 
   function newOrder() {
+    confirmKeyRef.current = null;
     setDraft(emptyDraft);
     setEditor(null);
     setTextEntry(false);
@@ -307,7 +308,11 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
     if (confirming || !canConfirm) return;
     setConfirming(true);
     setError("");
-    const key = confirmKeyRef.current ?? (confirmKeyRef.current = crypto.randomUUID());
+    const orderSnapshot = JSON.stringify(order);
+    if (confirmKeyRef.current?.order !== orderSnapshot) {
+      confirmKeyRef.current = { key: crypto.randomUUID(), order: orderSnapshot };
+    }
+    const key = confirmKeyRef.current.key;
     try {
       const result = await fetch("/api/orders/confirm", {
         method: "POST",
@@ -330,12 +335,12 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
 
   const section = [...catalog.products, ...catalog.sets.map((set) => ({ ...set, category: "set" }))]
     .filter((product) => !product.discontinued && (category === "all" || product.category === category));
-  const loading = busy || capturing;
+  const loading = busy || capturing || confirming;
 
   return <main className="register">
     <header className="toolbar">
       <h1 className="brand"><Image src="/koereji-logo.svg" alt="声レジ" width={60} height={60} unoptimized /></h1>
-      <button type="button" className="record-button" data-recording={capturing} disabled={busy} onClick={toggleRecording}>
+      <button type="button" className="record-button" data-recording={capturing} disabled={busy || confirming} onClick={toggleRecording}>
         <span className="mic" aria-hidden="true" />
         {recording.state === "recording" ? "録音を終了" : capturing ? "マイク準備を取り消す" : hasTicket ? "追加・取消を録音" : "録音開始"}
       </button>

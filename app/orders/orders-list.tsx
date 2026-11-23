@@ -12,7 +12,7 @@ const timeFormat = new Intl.DateTimeFormat("ja-JP", {
 });
 
 function summarize(order: ConfirmedOrder): string {
-  const parts = order.ticket.lines.map((line) => line.name + "×" + line.item.quantity);
+  const parts = (order.ticket.lines ?? []).map((line) => line.name + "×" + line.item.quantity);
   return parts.join("、") || "（品目なし）";
 }
 
