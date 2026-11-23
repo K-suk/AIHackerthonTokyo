@@ -104,6 +104,29 @@ export type ConfirmedOrder = {
 
 export type EventCategory = "equipment" | "customer" | "staff" | "other" | "reflection";
 
+// LLM が注文画面の発話から抽出する出来事（reflection 以外）
+export type ParsedEvent = {
+  text: string;
+  category: "equipment" | "customer" | "staff" | "other";
+  needsAction: boolean;
+};
+
+// 発話の振り分け結果（intent）
+export type Intent = "order" | "event" | "inventory";
+
+// 日報の集計（コードで算出。数値はここが唯一の正）
+export type DayAggregate = {
+  salesTotal: number;
+  orderCount: number;
+  counterCount: number;
+  phoneCount: number;
+  itemQuantities: { name: string; quantity: number }[];
+  topOptionIds: { optionId: string; count: number }[];
+  hourlyCounts: { hour: number; count: number }[];
+  events: EventMemo[]; // reflection 以外。要対応を先頭に
+  reflections: EventMemo[]; // reflection のみ。時刻順
+};
+
 // 出来事メモ（DB の events 行に対応）
 export type EventMemo = {
   id: string;

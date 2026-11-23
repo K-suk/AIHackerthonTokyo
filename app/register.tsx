@@ -7,9 +7,13 @@ import AppHeader from "@/components/AppHeader";
 import { priceLabel } from "@/lib/menu";
 import { applyVoiceCancellations, buildTicket, confirmBlockReason, demos, emptyOrder, hasPickup, orderItem } from "@/lib/order";
 import type { CancellationChoice, ParsedItem, ParsedOrder, Ticket, VoiceCancellation } from "@/lib/order";
-import type { Catalog } from "@/lib/types";
+import { eventCategoryLabel } from "@/lib/report";
+import type { Catalog, ParsedEvent } from "@/lib/types";
 import LineEditor from "./line-editor";
 import { useRecording } from "./use-recording";
+
+type Mode = "auto" | "order" | "event";
+const modeLabels: Record<Mode, string> = { auto: "自動", order: "注文", event: "出来事" };
 
 const categories = [
   { id: "all", label: "すべて" },
@@ -72,6 +76,8 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   const [canRetry, setCanRetry] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmNotice, setConfirmNotice] = useState("");
+  const [mode, setMode] = useState<Mode>("auto");
+  const [eventNotice, setEventNotice] = useState("");
   const requestRef = useRef<AbortController | null>(null);
   const retryRef = useRef<RequestInfo | null>(null);
   const confirmKeyRef = useRef<string | null>(null);
@@ -158,12 +164,13 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
     setCanRetry(false);
     setError("");
     setConfirmNotice("");
+    setEventNotice("");
     setEditor(null);
 
     try {
       const base = "additionTo" in info ? info.additionTo : undefined;
       const existingItems = base?.ticket.lines.map((line) => [line.name + " ×" + line.item.quantity, ...line.details].join("、"));
-      let body: { sample: string } | { transcript: string; existingItems?: string[] };
+      let body: { sample: string } | { transcript: string; existingItems?: string[]; mode?: Mode };
       if ("audio" in info) {
         setStatus("transcribing");
         const form = new FormData();
@@ -175,10 +182,10 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
         const transcript = String(payload.text);
         retryRef.current = { transcript, additionTo: base };
         if (!base) setDraft((previous) => ({ ...previous, transcript }));
-        body = { transcript, existingItems };
+        body = { transcript, existingItems, mode };
       } else if ("transcript" in info) {
         if (!base) setDraft((previous) => ({ ...previous, transcript: info.transcript }));
-        body = { transcript: info.transcript, existingItems };
+        body = { transcript: info.transcript, existingItems, mode };
       } else {
         body = info;
       }
@@ -192,6 +199,31 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
       });
       const payload = await result.json();
       if (!result.ok) throw new Error(payload.error);
+
+      // 発話の振り分け：出来事は記録、在庫は準備中。どちらも伝票には触れない。
+      if (payload.intent === "event" && payload.event) {
+        const parsedEvent = payload.event as ParsedEvent;
+        await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: parsedEvent.text, category: parsedEvent.category, needsAction: parsedEvent.needsAction }),
+        }).catch(() => {});
+        setEventNotice("出来事を記録しました（" + eventCategoryLabel(parsedEvent.category) + (parsedEvent.needsAction ? "・要対応" : "") + "）：" + parsedEvent.text);
+        retryRef.current = null;
+        setTextEntry(false);
+        setText("");
+        setStatus("done");
+        return;
+      }
+      if (payload.intent === "inventory") {
+        setEventNotice("在庫の操作は準備中です。");
+        retryRef.current = null;
+        setTextEntry(false);
+        setText("");
+        setStatus("done");
+        return;
+      }
+
       const nextTicket = payload.ticket as Ticket;
       const cancellations: VoiceCancellation[] = payload.cancellations ?? [];
       if (base) {
@@ -295,6 +327,7 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
     setText("");
     setError("");
     setConfirmNotice("");
+    setEventNotice("");
     setCanRetry(false);
     retryRef.current = null;
     setStatus("ready");
@@ -356,6 +389,17 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
           <button type="button" className="text-button" disabled={loading}
             onClick={() => { setText(draft.transcript); setTextEntry(!textEntry); }} aria-expanded={textEntry}>テキスト入力</button>}
       </section>
+
+      <div className="mode-toggle" role="group" aria-label="入力の種類">
+        <span className="mode-label">入力の種類</span>
+        {(Object.keys(modeLabels) as Mode[]).map((value) => <button key={value} type="button"
+          aria-pressed={mode === value} disabled={loading} onClick={() => setMode(value)}>{modeLabels[value]}</button>)}
+      </div>
+
+      {eventNotice && <div className="event-card" role="status">
+        <span>{eventNotice}</span>
+        <button type="button" onClick={() => setEventNotice("")}>閉じる</button>
+      </div>}
 
       {textEntry && <form className="text-entry" onSubmit={submitText}>
         <label htmlFor="order-transcript">注文内容</label>
