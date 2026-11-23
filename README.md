@@ -28,3 +28,5 @@ npm run dev -- --hostname 127.0.0.1
 初期スキーマを適用済みのDBで `npm run seed` を実行すると、デモ用の材料が登録されます。 `STORE_PASSCODE_HASH` を設定してサーバーを再起動し、`/inventory` で担当者と店舗パスコードを入力します。
 
 音声操作の解釈だけを試す場合は `./node_modules/.bin/tsx scripts/check-inventory-voice.ts` を実行できます。架空の指示とモックデータを OpenAI に送り、在庫への書き込みは行いません。Postgres の在庫テストは、初期スキーマとデモ材料を投入した専用ローカルDB `koe_inventory_test` の接続先を `INVENTORY_TEST_DATABASE_URL` に渡して `npm test` を実行します。
+
+既存DBにデモ用の材料と未登録のレシピを補うには、接続先を確認して `node --env-file=.env.local --import tsx scripts/seed-demo-inventory.ts` を実行します。店舗パスコードのハッシュは本番環境の `STORE_PASSCODE_HASH` に設定します。

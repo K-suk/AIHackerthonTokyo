@@ -20,8 +20,11 @@ export default async function OrdersPage() {
 
   return <main className="page">
     <AppHeader />
-    <section className="page-body">
-      <h1>本日の注文 <small className="business-date">{businessDate}</small></h1>
+    <section className="page-body orders-page">
+      <header className="orders-heading">
+        <h1>本日の注文</h1>
+        <time dateTime={businessDate}>{businessDate}</time>
+      </header>
       {error
         ? <p className="placeholder" role="alert">{error}</p>
         : <OrdersList orders={orders} />}

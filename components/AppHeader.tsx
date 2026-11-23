@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 
 // 全画面へのナビゲーション。
 const links = [
@@ -12,12 +14,19 @@ const links = [
   { href: "/admin/menu", label: "メニュー" },
 ] as const;
 
-export default function AppHeader() {
+export default function AppHeader({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
-  return <nav className="app-nav" aria-label="主要メニュー">
-    {links.map(({ href, label }) => {
-      const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-      return <Link key={href} href={href} aria-current={active ? "page" : undefined}>{label}</Link>;
-    })}
-  </nav>;
+  const Brand = pathname === "/" ? "h1" : "div";
+  return <>
+    <header className="toolbar">
+      <Brand className="brand"><Image src="/koereji-logo.svg" alt="声レジ" width={60} height={60} unoptimized /></Brand>
+      {children}
+    </header>
+    <nav className="app-nav" aria-label="主要メニュー">
+      {links.map(({ href, label }) => {
+        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        return <Link key={href} href={href} aria-current={active ? "page" : undefined}>{label}</Link>;
+      })}
+    </nav>
+  </>;
 }

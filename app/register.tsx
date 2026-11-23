@@ -360,14 +360,12 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   const loading = busy || capturing || confirming;
 
   return <main className="register">
-    <header className="toolbar">
-      <h1 className="brand"><Image src="/koereji-logo.svg" alt="声レジ" width={60} height={60} unoptimized /></h1>
+    <AppHeader>
       <button type="button" className="record-button" data-recording={capturing} disabled={busy || confirming} onClick={toggleRecording}>
         <span className="mic" aria-hidden="true" />
         {recording.state === "recording" ? "録音を終了" : capturing ? "マイク準備を取り消す" : hasTicket ? "追加・取消を録音" : "録音開始"}
       </button>
-    </header>
-    <AppHeader />
+    </AppHeader>
 
     <div className="work-area">
       <section className="capture-bar" aria-label="音声入力">

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import VoiceInput from "@/components/VoiceInput";
+import { priceLabel } from "@/lib/menu";
 import { eventCategoryLabel } from "@/lib/report";
 import type { EventCategory, EventMemo, OrderSuggestion } from "@/lib/types";
 
@@ -19,7 +20,6 @@ export type ReportSummary = {
   hourlyCounts: { hour: number; count: number }[];
 };
 
-const yen = (value: number) => "¥" + value.toLocaleString("ja-JP");
 const eventCategories: EventCategory[] = ["equipment", "customer", "staff", "other"];
 
 export default function ReportView({
@@ -46,6 +46,7 @@ export default function ReportView({
 
   const happenings = events.filter((event) => event.category !== "reflection");
   const reflections = events.filter((event) => event.category === "reflection");
+  const hasDraft = Boolean(draft.trim());
 
   async function send(url: string, init: RequestInit): Promise<unknown> {
     const result = await fetch(url, init);
@@ -170,16 +171,18 @@ export default function ReportView({
     {notice && <div className="success-banner" role="status"><span>{notice}</span></div>}
 
     <section className="report-card">
-      <h2>本日の実績</h2>
-      <div className="orders-summary">
-        <div><span>売上合計</span><strong>{yen(summary.salesTotal)}</strong></div>
-        <div><span>注文件数</span><strong>{summary.orderCount}件</strong></div>
-        <div><span>対面 / 電話</span><strong>{summary.counterCount} / {summary.phoneCount}</strong></div>
-      </div>
-      <p className="report-line"><b>取消：</b>{summary.cancelledCount}件</p>
-      <p className="report-line"><b>品目別：</b>{summary.itemQuantities.map((item) => item.name + " " + item.quantity).join("、") || "なし"}</p>
-      {summary.topOptions.length > 0 &&
-        <p className="report-line"><b>よく出たカスタム：</b>{summary.topOptions.map((option) => option.name + " " + option.count + "回").join("、")}</p>}
+      <h2>営業実績</h2>
+      <dl className="orders-summary">
+        <div><dt>売上合計</dt><dd>{priceLabel(summary.salesTotal)}</dd></div>
+        <div><dt>注文件数</dt><dd>{summary.orderCount}件</dd></div>
+        <div><dt>対面 / 電話</dt><dd>{summary.counterCount} / {summary.phoneCount}</dd></div>
+      </dl>
+      <dl className="report-details">
+        <div><dt>取消</dt><dd>{summary.cancelledCount}件</dd></div>
+        <div><dt>品目別</dt><dd>{summary.itemQuantities.map((item) => item.name + " " + item.quantity).join("、") || "なし"}</dd></div>
+        {summary.topOptions.length > 0 &&
+          <div><dt>よく出たカスタム</dt><dd>{summary.topOptions.map((option) => option.name + " " + option.count + "回").join("、")}</dd></div>}
+      </dl>
     </section>
 
     <section className="report-card">
@@ -191,15 +194,14 @@ export default function ReportView({
 
     <section className="report-card">
       <h2>出来事（{happenings.length}）</h2>
-      {happenings.length === 0 && <p className="placeholder">記録された出来事はありません。</p>}
-      <ul className="event-list">
+      {happenings.length === 0 ? <p className="report-empty">記録された出来事はありません。</p> : <ul className="event-list">
         {happenings.map((event) => <li key={event.id} className="event-row" data-action={event.needsAction}>
           <div className="event-main">
             {event.needsAction && <span className="event-flag">要対応</span>}
             <span className="event-text">{event.text}</span>
           </div>
           <div className="event-controls">
-            <select value={event.category} disabled={busyEvent === event.id}
+            <select aria-label="出来事の分類" value={event.category} disabled={busyEvent === event.id}
               onChange={(e) => void patchEvent(event.id, { category: e.currentTarget.value as EventCategory })}>
               {eventCategories.map((category) => <option key={category} value={category}>{eventCategoryLabel(category)}</option>)}
             </select>
@@ -211,41 +213,42 @@ export default function ReportView({
               onClick={() => void removeEvent(event.id)}>削除</button>
           </div>
         </li>)}
-      </ul>
+      </ul>}
     </section>
 
     <section className="report-card">
       <h2>店長の振り返り</h2>
       <VoiceInput label="今日の振り返りを話してください" onTranscript={(text) => void addReflection(text)} />
-      <form className="text-entry" onSubmit={submitReflectionText}>
-        <textarea value={reflectionText} onChange={(event) => setReflectionText(event.target.value)}
+      <form className="report-reflection" onSubmit={submitReflectionText}>
+        <textarea aria-label="振り返りのテキスト" value={reflectionText} onChange={(event) => setReflectionText(event.target.value)}
           maxLength={1200} rows={2} placeholder="テキストでも入力できます" />
         <button type="submit" disabled={!reflectionText.trim()}>振り返りに追加</button>
       </form>
-      <ul className="reflection-list">
+      {reflections.length === 0 ? <p className="report-empty">まだ振り返りはありません。</p> : <ul className="reflection-list">
         {reflections.map((reflection) => <li key={reflection.id}>
           <span>{reflection.text}</span>
           <button type="button" className="event-delete" disabled={busyEvent === reflection.id}
             onClick={() => void removeEvent(reflection.id)}>削除</button>
         </li>)}
-        {reflections.length === 0 && <li className="placeholder">まだ振り返りはありません。</li>}
-      </ul>
+      </ul>}
     </section>
 
     <section className="report-card">
-      <h2>日報の下書き</h2>
-      <div className="report-actions">
-        <button type="button" className="confirm-button" disabled={drafting} onClick={() => void generateDraft()}>
+      <div className="report-draft-heading">
+        <h2><label htmlFor="report-draft">日報の下書き</label></h2>
+        <button type="button" className={hasDraft ? undefined : "report-primary"} disabled={drafting} onClick={() => void generateDraft()}>
           {drafting ? "作成中…" : draft ? "作り直す" : "下書きを作成"}
         </button>
-        <button type="button" disabled={!draft.trim()} onClick={() => void copyDraft()}>コピー</button>
-        <a className="report-mail" href={draft.trim() ? mailtoHref() : undefined} aria-disabled={!draft.trim()}>メールで送る</a>
-        <button type="button" disabled={saving || !draft.trim()} onClick={() => void saveDraft()}>
+      </div>
+      <textarea id="report-draft" className="report-draft" value={draft} onChange={(event) => setDraft(event.target.value)}
+        rows={12} placeholder="「下書きを作成」で日報の下書きを生成します。" />
+      <div className="report-actions">
+        <button type="button" disabled={!hasDraft} onClick={() => void copyDraft()}>コピー</button>
+        <a className="report-mail" href={hasDraft ? mailtoHref() : undefined} aria-disabled={!hasDraft}>メールで送る</a>
+        <button type="button" className="report-primary" disabled={saving || !hasDraft} onClick={() => void saveDraft()}>
           {saving ? "保存中…" : "保存"}
         </button>
       </div>
-      <textarea className="report-draft" value={draft} onChange={(event) => setDraft(event.target.value)}
-        rows={16} placeholder="「下書きを作成」で日報の下書きを生成します。" />
     </section>
   </div>;
 }

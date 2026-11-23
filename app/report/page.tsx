@@ -55,7 +55,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
 
   return <main className="page">
     <AppHeader />
-    <section className="page-body">
+    <section className="page-body report-page">
       {error || !summary
         ? <p className="placeholder" role="alert">{error ?? "データがありません。"}</p>
         : <ReportView

@@ -93,7 +93,7 @@ export default function InventoryPanel({ staff, voiceEnabled, configured }: {
   return <>
     {error && <p className={styles.error} role="alert">{error}</p>}
     {!dashboard ? <form className={styles.access} onSubmit={(event) => { event.preventDefault(); void run(refresh); }}>
-      {!configured && <p>店舗パスコードを設定すると、在庫画面を開けます。</p>}
+      {!configured && <p className={styles.notice}>店舗パスコードを設定すると、在庫画面を開けます。</p>}
       <label>担当者
         <select value={operator} disabled={busy || !configured} onChange={(event) => setOperator(event.currentTarget.value)}>
           {staff.map((name) => <option key={name}>{name}</option>)}
@@ -106,52 +106,64 @@ export default function InventoryPanel({ staff, voiceEnabled, configured }: {
       <button type="submit" className={styles.primary} disabled={busy || !configured}>在庫を開く</button>
     </form> : <>
       <div className={styles.session}>
-        <span>{dashboard.businessDate} 営業日 · {operator}</span>
-        <div>
+        <p><time dateTime={dashboard.businessDate}>{dashboard.businessDate}</time> 営業日 · {operator}</p>
+        <div className={styles.actions}>
           <button type="button" disabled={busy} onClick={() => void run(refresh)}>更新</button>
           <button type="button" disabled={busy} onClick={() => {
             setDashboard(null); setPasscode(""); setSummary(null); setEditing(null); setError(""); setTranscript(""); setFilter("");
           }}>閉じる</button>
         </div>
       </div>
-      {voiceEnabled && <VoiceInput label="在庫や品切れを話してください" onTranscript={(text) => void updateByVoice(text)} disabled={busy} />}
-      <details className={styles.textInput}>
-        <summary>在庫の指示を文字で入力</summary>
-        <form onSubmit={(event) => { event.preventDefault(); if (transcript.trim()) void updateByVoice(transcript.trim()); }}>
-          <label htmlFor="inventory-transcript">在庫の指示</label>
-          <input id="inventory-transcript" value={transcript} maxLength={1200} placeholder="牛乳あと3本、チーズケーキ売り切れ"
-            onChange={(event) => setTranscript(event.currentTarget.value)} disabled={busy} />
-          <button type="submit" className={styles.primary} disabled={busy || !transcript.trim()}>反映</button>
-        </form>
-      </details>
-      {summary && <div className={styles.result}>
-        <ul role="status">{summary.summary.map((message, index) => <li key={index}>{message}</li>)}</ul>
-        {summary.changeId && <button type="button" disabled={busy} onClick={() => void run(async () => {
-          await request("/api/inventory/voice", "DELETE", { changeId: summary.changeId });
-          setSummary({ changeId: "", summary: ["音声操作を取り消しました"] });
-          await refresh();
-        })}>取り消す</button>}
-      </div>}
+      <section className={styles.command} aria-labelledby="inventory-command">
+        <h2 id="inventory-command">在庫を更新</h2>
+        {voiceEnabled && <VoiceInput label="在庫や品切れを話してください" onTranscript={updateByVoice} disabled={busy} />}
+        <details className={styles.textInput} open={voiceEnabled ? undefined : true}>
+          <summary>在庫の指示を文字で入力</summary>
+          <form onSubmit={(event) => { event.preventDefault(); if (transcript.trim()) void updateByVoice(transcript.trim()); }}>
+            <label htmlFor="inventory-transcript">在庫の指示</label>
+            <input id="inventory-transcript" value={transcript} maxLength={1200} placeholder="牛乳あと3本、チーズケーキ売り切れ"
+              onChange={(event) => setTranscript(event.currentTarget.value)} disabled={busy} />
+            <button type="submit" className={styles.primary} disabled={busy || !transcript.trim()}>反映</button>
+          </form>
+        </details>
+        {summary && <div className={styles.result}>
+          <ul role="status">{summary.summary.map((message, index) => <li key={index}>{message}</li>)}</ul>
+          {summary.changeId && <button type="button" disabled={busy} onClick={() => void run(async () => {
+            await request("/api/inventory/voice", "DELETE", { changeId: summary.changeId });
+            setSummary({ changeId: "", summary: ["音声操作を取り消しました"] });
+            await refresh();
+          })}>取り消す</button>}
+        </div>}
+      </section>
       <section className={styles.card} aria-labelledby="material-stock">
         <h2 id="material-stock">材料と発注候補</h2>
         {dashboard.materials.length === 0 ? <p>材料が登録されていません。</p> : <form onSubmit={applyStock}>
           <div className={styles.tableScroll} role="region" aria-label="材料の在庫表" tabIndex={0}>
-            <table>
-              <thead><tr><th scope="col">材料</th><th scope="col">現在庫</th><th scope="col">発注点</th>
-                <th scope="col">今日の使用</th><th scope="col">発注候補</th><th scope="col">補正</th></tr></thead>
-              <tbody>{dashboard.materials.map((material) => {
+            <table className={styles.stockTable} role="table">
+              <thead role="rowgroup"><tr role="row">
+                {["材料", "現在庫", "発注点", "今日の使用", "発注候補", "補正"].map((label) =>
+                  <th key={label} role="columnheader" scope="col">{label}</th>
+                )}
+              </tr></thead>
+              <tbody role="rowgroup">{dashboard.materials.map((material) => {
                 const suggestion = dashboard.suggestions.find(({ materialId }) => materialId === material.id);
-                return <tr key={material.id} data-low={material.stock <= material.reorderPoint}>
-                  <th scope="row">{material.name}</th>
-                  <td data-negative={material.stock < 0}>
+                return <tr key={material.id} role="row">
+                  <th role="rowheader" scope="row">
+                    <div className={styles.materialName}>
+                      {material.name}
+                      {material.stock <= material.reorderPoint && <span className={styles.lowStock}>発注点以下</span>}
+                    </div>
+                  </th>
+                  <td role="cell" className={styles.stockValue} data-negative={material.stock < 0}>
+                    <span className={styles.mobileLabel} aria-hidden="true">現在庫</span>
                     {editing?.id === material.id ? <input type="number" step="any" aria-label={`${material.name}の現在庫`} value={editing.stock}
                       onChange={(event) => setEditing({ id: material.id, stock: event.currentTarget.value })} disabled={busy} required /> :
                       quantity(material.stock, material.unit)}
                   </td>
-                  <td>{quantity(material.reorderPoint, material.unit)}</td>
-                  <td>{quantity(material.todayUsage, material.unit)}</td>
-                  <td>{suggestion ? `${suggestion.units}${suggestion.unitLabel}` : "—"}</td>
-                  <td>{editing?.id === material.id ? <>
+                  <td role="cell"><span className={styles.mobileLabel} aria-hidden="true">発注点</span>{quantity(material.reorderPoint, material.unit)}</td>
+                  <td role="cell"><span className={styles.mobileLabel} aria-hidden="true">今日の使用</span>{quantity(material.todayUsage, material.unit)}</td>
+                  <td role="cell"><span className={styles.mobileLabel} aria-hidden="true">発注候補</span>{suggestion ? `${suggestion.units}${suggestion.unitLabel}` : "—"}</td>
+                  <td role="cell" className={styles.rowActions}>{editing?.id === material.id ? <>
                     <button key="save" className={styles.primary} type="submit" disabled={busy}>保存</button>
                     <button key="close" type="button" disabled={busy} onClick={() => setEditing(null)}>閉じる</button>
                   </> : <button key="edit" type="button" aria-label={`${material.name}を補正`} disabled={busy}
@@ -162,7 +174,7 @@ export default function InventoryPanel({ staff, voiceEnabled, configured }: {
           </div>
         </form>}
       </section>
-      <section className={styles.card} aria-labelledby="sold-out-menu">
+      <section className={`${styles.card} ${styles.secondaryCard}`} aria-labelledby="sold-out-menu">
         <h2 id="sold-out-menu">商品の品切れ</h2>
         <label className={styles.filter}>商品を探す
           <input type="search" value={filter} onChange={(event) => setFilter(event.currentTarget.value)} />
@@ -179,7 +191,7 @@ export default function InventoryPanel({ staff, voiceEnabled, configured }: {
           </li>)}
         </ul>
       </section>
-      <section className={styles.card} aria-labelledby="recent-stock">
+      <section className={`${styles.card} ${styles.secondaryCard}`} aria-labelledby="recent-stock">
         <h2 id="recent-stock">最近の在庫変更</h2>
         {dashboard.history.length === 0 && <p>変更履歴はまだありません。</p>}
         <ul className={styles.history}>{dashboard.history.map((entry) => <li key={entry.id}>

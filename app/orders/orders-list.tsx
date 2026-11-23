@@ -42,31 +42,35 @@ export default function OrdersList({ orders }: { orders: ConfirmedOrder[] }) {
   }
 
   return <div className="orders-view">
-    <div className="orders-summary">
-      <div><span>売上合計</span><strong>{priceLabel(salesTotal)}</strong></div>
-      <div><span>確定注文</span><strong>{confirmed.length}件</strong></div>
-      <div><span>うち電話</span><strong>{phoneCount}件</strong></div>
-    </div>
+    <dl className="orders-summary">
+      <div><dt>売上合計</dt><dd>{priceLabel(salesTotal)}</dd></div>
+      <div><dt>確定注文</dt><dd>{confirmed.length}件</dd></div>
+      <div><dt>うち電話</dt><dd>{phoneCount}件</dd></div>
+    </dl>
 
     {error && <div className="error-banner" role="alert"><span>{error}</span></div>}
 
-    {orders.length === 0 && <p className="placeholder">本日の確定注文はまだありません。</p>}
-
-    <ul className="orders-list">
-      {orders.map((order) => <li key={order.id} className="order-row" data-cancelled={order.status === "cancelled"}>
-        <div className="order-main">
-          <span className="order-time">{timeFormat.format(new Date(order.confirmedAt))}</span>
-          <span className="order-channel" data-channel={order.channel}>{order.channel === "phone" ? "電話" : "対面"}</span>
-          <span className="order-summary">{summarize(order)}</span>
-        </div>
-        <div className="order-side">
-          <span className="order-total">{priceLabel(order.total)}</span>
-          {order.status === "cancelled"
-            ? <span className="order-cancelled-tag">取り消し済み</span>
-            : <button type="button" className="order-cancel" disabled={cancelling === order.id}
-                onClick={() => cancel(order.id)}>{cancelling === order.id ? "取消中…" : "取り消し"}</button>}
-        </div>
-      </li>)}
-    </ul>
+    {orders.length === 0 ? (
+      <p className="placeholder">本日の確定注文はまだありません。</p>
+    ) : (
+      <ul className="orders-list">
+        {orders.map((order) => <li key={order.id} className="order-row" data-cancelled={order.status === "cancelled"}>
+          <div className="order-main">
+            <div className="order-meta">
+              <time dateTime={order.confirmedAt}>{timeFormat.format(new Date(order.confirmedAt))}</time>
+              <span className="order-channel" data-channel={order.channel}>{order.channel === "phone" ? "電話" : "対面"}</span>
+            </div>
+            <p className="order-summary">{summarize(order)}</p>
+          </div>
+          <div className="order-side">
+            <span className="order-total">{priceLabel(order.total)}</span>
+            {order.status === "cancelled"
+              ? <span className="order-cancelled-tag">取り消し済み</span>
+              : <button type="button" className="order-cancel" disabled={cancelling === order.id}
+                  onClick={() => cancel(order.id)}>{cancelling === order.id ? "取消中…" : "取り消し"}</button>}
+          </div>
+        </li>)}
+      </ul>
+    )}
   </div>;
 }
