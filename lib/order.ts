@@ -48,10 +48,18 @@ export function applyVoiceCancellations(ticket: Ticket, cancellations: VoiceCanc
   const choices: CancellationChoice[] = [];
   for (const { target, lineNumbers } of cancellations) {
     const requested = [...new Set(lineNumbers)];
-    const candidates = requested
+    const requestedLines = requested
       .filter((number) => Number.isSafeInteger(number) && number > 0 && number <= ticket.lines.length)
       .map((number) => ticket.lines[number - 1]);
-    if (requested.length === 1 && candidates.length === 1) removed.add(candidates[0]);
+    const milkIds = menu.optionGroups.milk.optionIds.filter((id) => {
+      const option = optionById(id);
+      return option && [option.name, ...option.aliases].some((name) => target.includes(name));
+    });
+    const [milkId] = milkIds;
+    const candidates = milkIds.length === 1
+      ? requestedLines.filter((line) => line.item.optionIds.includes(milkId))
+      : requestedLines;
+    if (requested.length === requestedLines.length && candidates.length === 1) removed.add(candidates[0]);
     else choices.push({ target, candidates });
   }
   return {

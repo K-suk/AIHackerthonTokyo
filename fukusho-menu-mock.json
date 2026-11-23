@@ -189,6 +189,839 @@
       "category": "food",
       "price": 380,
       "optionGroupIds": []
+    },
+    {
+      "id": "hot_cappuccino",
+      "name": "ホットカプチーノ",
+      "aliases": [
+        "カプチーノ"
+      ],
+      "category": "coffee",
+      "price": 520,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "sweetness"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 470,
+        "T": 520,
+        "G": 570
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "hot_mocha",
+      "name": "ホットカフェモカ",
+      "aliases": [
+        "温かいモカ",
+        "ホットモカ"
+      ],
+      "category": "coffee",
+      "price": 580,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "sweetness"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 530,
+        "T": 580,
+        "G": 630
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "iced_mocha",
+      "name": "アイスカフェモカ",
+      "aliases": [
+        "アイスモカ"
+      ],
+      "category": "coffee",
+      "price": 570,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "ice",
+        "sweetness"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 520,
+        "T": 570,
+        "G": 620
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "hot_caramel_latte",
+      "name": "ホットキャラメルラテ",
+      "aliases": [],
+      "category": "coffee",
+      "price": 590,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "sweetness"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 540,
+        "T": 590,
+        "G": 640
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "iced_caramel_latte",
+      "name": "アイスキャラメルラテ",
+      "aliases": [],
+      "category": "coffee",
+      "price": 580,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "ice",
+        "sweetness"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 530,
+        "T": 580,
+        "G": 630
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "hot_americano",
+      "name": "ホットアメリカーノ",
+      "aliases": [],
+      "category": "coffee",
+      "price": 460,
+      "optionGroupIds": [],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 410,
+        "T": 460,
+        "G": 510
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "iced_americano",
+      "name": "アイスアメリカーノ",
+      "aliases": [],
+      "category": "coffee",
+      "price": 480,
+      "optionGroupIds": [
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 430,
+        "T": 480,
+        "G": 530
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "hot_matcha_latte",
+      "name": "ホット抹茶ラテ",
+      "aliases": [
+        "温かい抹茶ラテ"
+      ],
+      "category": "tea",
+      "price": 570,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 520,
+        "T": 570,
+        "G": 620
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "iced_matcha_latte",
+      "name": "アイス抹茶ラテ",
+      "aliases": [
+        "冷たい抹茶ラテ",
+        "抹茶ミルクアイス"
+      ],
+      "category": "tea",
+      "price": 560,
+      "optionGroupIds": [
+        "milk",
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 510,
+        "T": 560,
+        "G": 610
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "hot_chai_latte",
+      "name": "ホットチャイラテ",
+      "aliases": [
+        "ホットチャイ",
+        "温かいチャイ"
+      ],
+      "category": "tea",
+      "price": 550,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 500,
+        "T": 550,
+        "G": 600
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "iced_chai_latte",
+      "name": "アイスチャイラテ",
+      "aliases": [
+        "アイスチャイ",
+        "冷たいチャイ"
+      ],
+      "category": "tea",
+      "price": 550,
+      "optionGroupIds": [
+        "milk",
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 500,
+        "T": 550,
+        "G": 600
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "hot_hojicha_latte",
+      "name": "ホットほうじ茶ラテ",
+      "aliases": [
+        "温かいほうじ茶ラテ"
+      ],
+      "category": "tea",
+      "price": 560,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 510,
+        "T": 560,
+        "G": 610
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "iced_hojicha_latte",
+      "name": "アイスほうじ茶ラテ",
+      "aliases": [
+        "冷たいほうじ茶ラテ"
+      ],
+      "category": "tea",
+      "price": 550,
+      "optionGroupIds": [
+        "milk",
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 500,
+        "T": 550,
+        "G": 600
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "iced_earl_grey",
+      "name": "アイスアールグレイ",
+      "aliases": [
+        "アールグレイ",
+        "アイスティー"
+      ],
+      "category": "tea",
+      "price": 450,
+      "optionGroupIds": [
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 400,
+        "T": 450,
+        "G": 500
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "sparkling_lemonade",
+      "name": "スパークリングレモネード",
+      "aliases": [
+        "レモネード",
+        "レモンスカッシュ"
+      ],
+      "category": "tea",
+      "price": 540,
+      "optionGroupIds": [
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 490,
+        "T": 540,
+        "G": 590
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "caramel_frappe",
+      "name": "キャラメルフラッペ",
+      "aliases": [
+        "キャラメルフラペチーノ"
+      ],
+      "category": "frozen",
+      "price": 640,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 590,
+        "T": 640,
+        "G": 690
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "matcha_frappe",
+      "name": "抹茶フラッペ",
+      "aliases": [
+        "抹茶フラペチーノ",
+        "抹茶のフローズン"
+      ],
+      "category": "frozen",
+      "price": 650,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 600,
+        "T": 650,
+        "G": 700
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "strawberry_frappe",
+      "name": "ストロベリーフラッペ",
+      "aliases": [
+        "いちごフラッペ",
+        "ストロベリーフラペチーノ"
+      ],
+      "category": "frozen",
+      "price": 670,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 620,
+        "T": 670,
+        "G": 720
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "chocolate_cookie_frappe",
+      "name": "チョコクッキーフラッペ",
+      "aliases": [
+        "チョコフラッペ",
+        "チョコクッキーフラペチーノ"
+      ],
+      "category": "frozen",
+      "price": 670,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 620,
+        "T": 670,
+        "G": 720
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "vanilla_frappe",
+      "name": "バニラフラッペ",
+      "aliases": [
+        "バニラフラペチーノ"
+      ],
+      "category": "frozen",
+      "price": 620,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 570,
+        "T": 620,
+        "G": 670
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "chestnut_latte",
+      "name": "マロンラテ",
+      "aliases": [
+        "栗のラテ",
+        "ホットマロンラテ"
+      ],
+      "category": "seasonal",
+      "price": 650,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "sweetness"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 600,
+        "T": 650,
+        "G": 700
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "strawberry_matcha_latte",
+      "name": "いちご抹茶ラテ",
+      "aliases": [
+        "ストロベリー抹茶ラテ",
+        "アイスいちご抹茶ラテ"
+      ],
+      "category": "seasonal",
+      "price": 690,
+      "optionGroupIds": [
+        "milk",
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 640,
+        "T": 690,
+        "G": 740
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "yuzu_soda",
+      "name": "ゆずソーダ",
+      "aliases": [
+        "柚子ソーダ",
+        "ゆずスカッシュ"
+      ],
+      "category": "seasonal",
+      "price": 590,
+      "optionGroupIds": [
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 540,
+        "T": 590,
+        "G": 640
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "pistachio_frappe",
+      "name": "ピスタチオフラッペ",
+      "aliases": [
+        "ピスタチオフラペチーノ"
+      ],
+      "category": "seasonal",
+      "price": 720,
+      "optionGroupIds": [
+        "milk"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 670,
+        "T": 720,
+        "G": 770
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "chocolate_scone",
+      "name": "チョコチャンクスコーン",
+      "aliases": [
+        "チョコスコーン"
+      ],
+      "category": "food",
+      "price": 370,
+      "optionGroupIds": []
+    },
+    {
+      "id": "lemon_cake",
+      "name": "レモンケーキ",
+      "aliases": [
+        "レモンパウンドケーキ"
+      ],
+      "category": "food",
+      "price": 450,
+      "optionGroupIds": []
+    },
+    {
+      "id": "cinnamon_roll",
+      "name": "シナモンロール",
+      "aliases": [],
+      "category": "food",
+      "price": 420,
+      "optionGroupIds": []
+    },
+    {
+      "id": "margherita_pizza",
+      "name": "マルゲリータ",
+      "aliases": [
+        "マルゲリータピザ"
+      ],
+      "category": "pizza",
+      "price": 1100,
+      "optionGroupIds": []
+    },
+    {
+      "id": "buffalo_margherita_pizza",
+      "name": "水牛モッツァレラのマルゲリータ",
+      "aliases": [
+        "水牛のマルゲリータ",
+        "水牛モッツァレラのピザ"
+      ],
+      "category": "pizza",
+      "price": 1380,
+      "optionGroupIds": []
+    },
+    {
+      "id": "bacon_potato_pizza",
+      "name": "ベーコンポテトピザ",
+      "aliases": [
+        "ポテトベーコンピザ"
+      ],
+      "category": "pizza",
+      "price": 1240,
+      "optionGroupIds": []
+    },
+    {
+      "id": "four_cheese_pizza",
+      "name": "4種チーズのピザ",
+      "aliases": [
+        "クワトロフォルマッジ",
+        "クアトロフォルマッジ",
+        "4種のチーズピザ"
+      ],
+      "category": "pizza",
+      "price": 1320,
+      "optionGroupIds": []
+    },
+    {
+      "id": "honey_four_cheese_pizza",
+      "name": "はちみつ4種チーズのミニピザ",
+      "aliases": [
+        "はちみつチーズのミニピザ",
+        "はちみつクワトロフォルマッジ"
+      ],
+      "category": "pizza",
+      "price": 890,
+      "optionGroupIds": []
+    },
+    {
+      "id": "pepperoni_pizza",
+      "name": "ペパロニピザ",
+      "aliases": [
+        "ペパロニ"
+      ],
+      "category": "pizza",
+      "price": 1260,
+      "optionGroupIds": []
+    },
+    {
+      "id": "mushroom_bacon_pizza",
+      "name": "きのことベーコンのピザ",
+      "aliases": [
+        "きのこベーコンピザ"
+      ],
+      "category": "pizza",
+      "price": 1290,
+      "optionGroupIds": []
+    },
+    {
+      "id": "basil_chicken_pizza",
+      "name": "バジルチキンピザ",
+      "aliases": [
+        "チキンバジルピザ"
+      ],
+      "category": "pizza",
+      "price": 1300,
+      "optionGroupIds": []
+    },
+    {
+      "id": "shrimp_avocado_pizza",
+      "name": "海老とアボカドのピザ",
+      "aliases": [
+        "エビアボカドピザ"
+      ],
+      "category": "pizza",
+      "price": 1410,
+      "optionGroupIds": []
+    },
+    {
+      "id": "teriyaki_chicken_pizza",
+      "name": "照り焼きチキンピザ",
+      "aliases": [
+        "てりやきチキンピザ"
+      ],
+      "category": "pizza",
+      "price": 1280,
+      "optionGroupIds": []
+    },
+    {
+      "id": "carbonara",
+      "name": "カルボナーラ",
+      "aliases": [
+        "定番のカルボナーラ",
+        "普通のカルボナーラ"
+      ],
+      "category": "pasta",
+      "price": 1090,
+      "optionGroupIds": []
+    },
+    {
+      "id": "thick_bacon_carbonara",
+      "name": "厚切りベーコンの濃厚カルボナーラ",
+      "aliases": [
+        "濃厚カルボナーラ",
+        "厚切りベーコンのカルボナーラ"
+      ],
+      "category": "pasta",
+      "price": 1290,
+      "optionGroupIds": []
+    },
+    {
+      "id": "mushroom_carbonara",
+      "name": "きのこのカルボナーラ",
+      "aliases": [
+        "きのこカルボナーラ"
+      ],
+      "category": "pasta",
+      "price": 1190,
+      "optionGroupIds": []
+    },
+    {
+      "id": "arrabbiata",
+      "name": "ペンネアラビアータ",
+      "aliases": [
+        "アラビアータ"
+      ],
+      "category": "pasta",
+      "price": 990,
+      "optionGroupIds": []
+    },
+    {
+      "id": "bolognese",
+      "name": "ボロネーゼ",
+      "aliases": [
+        "ボロネーズ",
+        "ミートソースパスタ"
+      ],
+      "category": "pasta",
+      "price": 1120,
+      "optionGroupIds": []
+    },
+    {
+      "id": "shrimp_tomato_cream_pasta",
+      "name": "海老のトマトクリームパスタ",
+      "aliases": [
+        "エビのトマトクリーム",
+        "海老トマトクリーム"
+      ],
+      "category": "pasta",
+      "price": 1290,
+      "optionGroupIds": []
+    },
+    {
+      "id": "basil_mozzarella_pasta",
+      "name": "バジルとモッツァレラのパスタ",
+      "aliases": [
+        "バジルモッツァレラパスタ"
+      ],
+      "category": "pasta",
+      "price": 1170,
+      "optionGroupIds": []
+    },
+    {
+      "id": "peperoncino",
+      "name": "ペペロンチーノ",
+      "aliases": [
+        "ペペロン"
+      ],
+      "category": "pasta",
+      "price": 950,
+      "optionGroupIds": []
+    },
+    {
+      "id": "mushroom_soy_butter_pasta",
+      "name": "きのこの醤油バターパスタ",
+      "aliases": [
+        "きのこ醤油バター",
+        "きのこの和風パスタ"
+      ],
+      "category": "pasta",
+      "price": 1050,
+      "optionGroupIds": []
+    },
+    {
+      "id": "napolitan",
+      "name": "喫茶店のナポリタン",
+      "aliases": [
+        "ナポリタン"
+      ],
+      "category": "pasta",
+      "price": 1020,
+      "optionGroupIds": []
+    },
+    {
+      "id": "chicken_caesar_salad",
+      "name": "グリルチキンのシーザーサラダ",
+      "aliases": [
+        "チキンシーザーサラダ"
+      ],
+      "category": "food",
+      "price": 690,
+      "optionGroupIds": []
+    },
+    {
+      "id": "shrimp_avocado_salad",
+      "name": "海老とアボカドのサラダ",
+      "aliases": [
+        "エビアボカドサラダ"
+      ],
+      "category": "food",
+      "price": 740,
+      "optionGroupIds": []
+    },
+    {
+      "id": "minestrone",
+      "name": "野菜のミネストローネ",
+      "aliases": [
+        "ミネストローネ"
+      ],
+      "category": "food",
+      "price": 490,
+      "optionGroupIds": []
+    },
+    {
+      "id": "corn_potage",
+      "name": "コーンポタージュ",
+      "aliases": [
+        "コーンスープ"
+      ],
+      "category": "food",
+      "price": 450,
+      "optionGroupIds": []
+    },
+    {
+      "id": "demiglace_omurice",
+      "name": "デミグラスオムライス",
+      "aliases": [
+        "デミオムライス"
+      ],
+      "category": "food",
+      "price": 1180,
+      "optionGroupIds": []
+    },
+    {
+      "id": "tomato_omurice",
+      "name": "トマトソースのオムライス",
+      "aliases": [
+        "トマトオムライス"
+      ],
+      "category": "food",
+      "price": 1090,
+      "optionGroupIds": []
+    },
+    {
+      "id": "chicken_curry",
+      "name": "チキンカレー",
+      "aliases": [
+        "チキンカレーライス"
+      ],
+      "category": "food",
+      "price": 1080,
+      "optionGroupIds": []
+    },
+    {
+      "id": "bacon_egg_sandwich",
+      "name": "ベーコンエッグホットサンド",
+      "aliases": [
+        "ベーコンエッグサンド"
+      ],
+      "category": "food",
+      "price": 680,
+      "optionGroupIds": []
+    },
+    {
+      "id": "chocolate_brownie",
+      "name": "チョコレートブラウニー",
+      "aliases": [
+        "ブラウニー",
+        "チョコブラウニー"
+      ],
+      "category": "food",
+      "price": 460,
+      "optionGroupIds": []
+    },
+    {
+      "id": "berry_panna_cotta",
+      "name": "ベリーのパンナコッタ",
+      "aliases": [
+        "パンナコッタ"
+      ],
+      "category": "food",
+      "price": 520,
+      "optionGroupIds": []
+    },
+    {
+      "id": "tiramisu",
+      "name": "ティラミス",
+      "aliases": [],
+      "category": "food",
+      "price": 550,
+      "optionGroupIds": []
+    },
+    {
+      "id": "caramel_pudding",
+      "name": "カラメルプリン",
+      "aliases": [
+        "プリン",
+        "カスタードプリン"
+      ],
+      "category": "food",
+      "price": 490,
+      "optionGroupIds": []
     }
   ],
   "sets": [

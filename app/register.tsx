@@ -13,6 +13,11 @@ const categories = [
   { id: "all", label: "すべて" },
   { id: "set", label: "セット" },
   { id: "coffee", label: "コーヒー" },
+  { id: "tea", label: "ティー・その他" },
+  { id: "frozen", label: "フローズン" },
+  { id: "seasonal", label: "期間限定" },
+  { id: "pizza", label: "ピザ" },
+  { id: "pasta", label: "パスタ" },
   { id: "food", label: "フード" },
 ] as const;
 
@@ -37,7 +42,7 @@ const emptyDraft: Draft = { ticket: buildTicket(emptyOrder), transcript: "" };
 
 function ImageTile({ id, thumbnail = false }: { id: string; thumbnail?: boolean }) {
   return <span className={thumbnail ? "thumbnail" : "product-photo"}>
-    <Image src={"/menu/" + id + ".jpg"} alt="" fill unoptimized loading={thumbnail ? "lazy" : "eager"} />
+    <Image src={"/menu/" + id + ".jpg"} alt="" fill unoptimized />
   </span>;
 }
 
@@ -48,7 +53,7 @@ function statusMessage(status: Status, recording: ReturnType<typeof useRecording
   if (status === "analyzing") return "注文を解析中";
   if (status === "error") return "再試行できます";
   if (needsAttention) return "要確認";
-  if (status === "done") return "反映済み";
+  if (status === "done") return "確認待ち";
   return "";
 }
 
@@ -65,6 +70,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
   const requestRef = useRef<AbortController | null>(null);
   const retryRef = useRef<RequestInfo | null>(null);
   const waveformRef = useRef<HTMLSpanElement>(null);
+  const pickupPanelRef = useRef<HTMLDetailsElement>(null);
 
   const ticket = draft.ticket;
   const { order } = ticket;
@@ -79,7 +85,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
   const showPickupForm = hasTicket && hasPickup(order);
   const needsPickupDetails = showPickupForm && (!order.customerName?.trim() || !order.pickupTime);
   const needsAttention = Boolean(draft.cancellationChoices?.length) || (hasTicket && (ticket.total === null || needsPickupDetails));
-  const message = statusMessage(status, recording.state, needsAttention);
+  const message = statusMessage(status === "done" && !hasTicket ? "ready" : status, recording.state, needsAttention);
 
   useEffect(() => {
     try {
@@ -102,6 +108,9 @@ export default function Register({ browserRecording }: { browserRecording: boole
 
   function updateDraft(nextDraft: Draft) {
     const { order: nextOrder, total } = nextDraft.ticket;
+    if (hasPickup(nextOrder) && !hasPickup(draft.ticket.order) && pickupPanelRef.current) {
+      pickupPanelRef.current.open = true;
+    }
     const name = nextOrder.customerName?.trim();
     if (total !== null && name && nextOrder.pickupTime) {
       const id = nextDraft.pickupId ?? crypto.randomUUID();
@@ -273,10 +282,13 @@ export default function Register({ browserRecording }: { browserRecording: boole
   function newOrder() {
     setDraft(emptyDraft);
     setEditor(null);
+    setTextEntry(false);
+    setText("");
     setError("");
     setCanRetry(false);
     retryRef.current = null;
     setStatus("ready");
+    if (pickupPanelRef.current) pickupPanelRef.current.open = false;
   }
 
   const section = catalog.filter((product) => category === "all" || product.category === category);
@@ -324,11 +336,11 @@ export default function Register({ browserRecording }: { browserRecording: boole
               {categories.map(({ id, label }) => <button key={id} type="button" aria-pressed={category === id} onClick={() => setCategory(id)}>{label}</button>)}
             </div>
             <div className="samples">
-              {demos.map((sample) => <button key={sample.id} type="button" disabled={loading}
+              {demos.filter((sample) => sample.id !== "phone").map((sample) => <button key={sample.id} type="button" disabled={loading}
                 onClick={() => void run({ sample: sample.id })}>{sample.label}</button>)}
             </div>
           </div>
-          <div className="product-grid">
+          <div key={category} className="product-grid" role="region" aria-label="商品一覧" tabIndex={0}>
             {section.map((product) => {
               const count = order.items.filter((item) => item.menuId === product.id).reduce((sum, item) => sum + item.quantity, 0);
               return <button type="button" key={product.id} className="product-card" data-selected={count > 0} disabled={loading}
@@ -349,22 +361,6 @@ export default function Register({ browserRecording }: { browserRecording: boole
                 {message && <><i aria-hidden="true" />{message}</>}
               </span>
             </header>
-
-            {showPickupForm && <div className="pickup-form">
-              <label>お名前
-                <input value={order.customerName ?? ""} disabled={loading} placeholder="未入力"
-                  onChange={(event) => editOrder({ customerName: event.currentTarget.value || null })} />
-              </label>
-              <label>受取時刻
-                <input type="time" value={order.pickupTime ?? ""} disabled={loading}
-                  onChange={(event) => editOrder({ pickupTime: event.currentTarget.value || null })} />
-              </label>
-              <label className="pickup-date">受取日
-                <input type="date" value={order.pickupDate ?? todayInTokyo()} disabled={loading}
-                  onChange={(event) => editOrder({ pickupDate: event.currentTarget.value || null })} />
-              </label>
-              {needsPickupDetails && <p>受取リストに追加するには、名前と受取時刻を確認してください。</p>}
-            </div>}
 
             <div className="ticket-items">
               {draft.cancellationNotice && <p className="ticket-notice" role="status">{draft.cancellationNotice}</p>}
@@ -389,7 +385,10 @@ export default function Register({ browserRecording }: { browserRecording: boole
                     {line.details.map((detail) => <small key={detail}>{detail}</small>)}
                   </span>
                   <span className="line-quantity">×{line.item.quantity}</span>
-                  <span className="line-amount">{line.amount === null ? "—" : priceLabel(line.amount)}</span>
+                  <span className="line-price">
+                    <span className="line-amount">{line.amount === null ? "—" : priceLabel(line.amount)}</span>
+                    <span className="line-edit-label">{editor === index ? "閉じる" : "編集"}</span>
+                  </span>
                 </button>
                 {line.issues.map((issue, issueIndex) => <div className="inline-warning" data-uncertain={issue.uncertain} key={issueIndex}>
                   <p>{issue.message}</p>
@@ -398,7 +397,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
                       onClick={() => updateItem(index, choice.patch)}>{choice.label}</button>)}
                   </div>}
                 </div>)}
-                {editor === index && <LineEditor index={index} item={line.item}
+                {editor === index && <LineEditor index={index} item={line.item} disabled={loading}
                   onChange={(patch) => updateItem(index, patch)}
                   onRemove={() => { editOrder({ items: order.items.filter((_, i) => i !== index) }); setEditor(null); }} />}
               </article>)}
@@ -412,31 +411,55 @@ export default function Register({ browserRecording }: { browserRecording: boole
 
             <footer className="ticket-footer">
               <div><span>合計</span><strong>{ticket.total === null ? (hasTicket ? "—" : "¥0") : priceLabel(ticket.total)}</strong></div>
+              {hasTicket && !showPickupForm && !needsAttention && !loading &&
+                <p className="counter-next-step">内容と合計を確認して、店頭で会計します。</p>}
               {hasTicket && <div className="ticket-actions">
-                <button type="button" disabled={loading} onClick={newOrder}>新しい注文</button>
-                {!showPickupForm && <button type="button" disabled={loading} onClick={() => editOrder({ pickupRequested: true })}>受取情報を追加</button>}
+                <button type="button" disabled={loading} onClick={newOrder}>次の注文を始める</button>
               </div>}
             </footer>
           </section>
 
-          <section className="pickup-panel" aria-labelledby="pickup-heading">
-            <h2 id="pickup-heading">受取リスト</h2>
-            {pickups.length === 0 && <p className="pickup-empty">受取予定はありません</p>}
-            {pickups.map((pickup) => <div key={pickup.id} className="pickup-row" data-current={pickup.id === draft.pickupId}>
-              <button type="button" disabled={loading} className="pickup-select" onClick={() => {
-                setDraft({ ticket: pickup.ticket, transcript: pickup.transcript, pickupId: pickup.id });
-                setEditor(null);
-                setStatus("done");
-              }}>
-                <strong>{pickup.time}</strong><span>{pickup.name}</span>
-                {pickup.date !== todayInTokyo() && <small>{pickup.date.slice(5).replace("-", "/")}</small>}
-              </button>
-              <button type="button" disabled={loading} className="pickup-done" onClick={() => {
-                savePickups(pickups.filter((item) => item.id !== pickup.id));
-                if (draft.pickupId === pickup.id) newOrder();
-              }}>受取済み</button>
-            </div>)}
-          </section>
+          <details ref={pickupPanelRef} className="pickup-panel">
+            <summary>店頭受取の予約{pickups.length > 0 && <span className="pickup-count">（{pickups.length}件）</span>}</summary>
+            <div className="pickup-tools">
+              {hasTicket && !showPickupForm && <button type="button" disabled={loading}
+                onClick={() => editOrder({ pickupRequested: true })}>現在の伝票に予約情報を追加</button>}
+              <button type="button" disabled={loading} onClick={() => void run({ sample: "phone" })}>受取サンプル</button>
+            </div>
+            {showPickupForm && <div className="pickup-form">
+              <label>お名前
+                <input value={order.customerName ?? ""} disabled={loading} placeholder="未入力"
+                  onChange={(event) => editOrder({ customerName: event.currentTarget.value || null })} />
+              </label>
+              <label>受取時刻
+                <input type="time" value={order.pickupTime ?? ""} disabled={loading}
+                  onChange={(event) => editOrder({ pickupTime: event.currentTarget.value || null })} />
+              </label>
+              <label className="pickup-date">受取日
+                <input type="date" value={order.pickupDate ?? todayInTokyo()} disabled={loading}
+                  onChange={(event) => editOrder({ pickupDate: event.currentTarget.value || null })} />
+              </label>
+              {needsPickupDetails && <p>受取リストに追加するには、名前と受取時刻を確認してください。</p>}
+            </div>}
+            <section aria-labelledby="pickup-heading">
+              <h2 id="pickup-heading">受取リスト</h2>
+              {pickups.length === 0 && <p className="pickup-empty">受取予定はありません</p>}
+              {pickups.map((pickup) => <div key={pickup.id} className="pickup-row" data-current={pickup.id === draft.pickupId}>
+                <button type="button" disabled={loading} className="pickup-select" onClick={() => {
+                  setDraft({ ticket: pickup.ticket, transcript: pickup.transcript, pickupId: pickup.id });
+                  setEditor(null);
+                  setStatus("done");
+                }}>
+                  <strong>{pickup.time}</strong><span>{pickup.name}</span>
+                  {pickup.date !== todayInTokyo() && <small>{pickup.date.slice(5).replace("-", "/")}</small>}
+                </button>
+                <button type="button" disabled={loading} className="pickup-done" onClick={() => {
+                  savePickups(pickups.filter((item) => item.id !== pickup.id));
+                  if (draft.pickupId === pickup.id) newOrder();
+                }}>受取済み</button>
+              </div>)}
+            </section>
+          </details>
         </aside>
       </div>
     </div>
