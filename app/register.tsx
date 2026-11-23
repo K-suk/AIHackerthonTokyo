@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import AppHeader from "@/components/AppHeader";
 import { priceLabel } from "@/lib/menu";
-import { applyVoiceCancellations, buildTicket, demos, emptyOrder, hasPickup, orderItem } from "@/lib/order";
+import { applyVoiceCancellations, buildTicket, confirmBlockReason, demos, emptyOrder, hasPickup, orderItem } from "@/lib/order";
 import type { CancellationChoice, ParsedItem, ParsedOrder, Ticket, VoiceCancellation } from "@/lib/order";
 import type { Catalog } from "@/lib/types";
 import LineEditor from "./line-editor";
@@ -70,8 +70,11 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   const [textEntry, setTextEntry] = useState(false);
   const [text, setText] = useState("");
   const [canRetry, setCanRetry] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmNotice, setConfirmNotice] = useState("");
   const requestRef = useRef<AbortController | null>(null);
   const retryRef = useRef<RequestInfo | null>(null);
+  const confirmKeyRef = useRef<string | null>(null);
   const waveformRef = useRef<HTMLSpanElement>(null);
   const pickupPanelRef = useRef<HTMLDetailsElement>(null);
 
@@ -89,6 +92,8 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
   const needsPickupDetails = showPickupForm && (!order.customerName?.trim() || !order.pickupTime);
   const needsAttention = Boolean(draft.cancellationChoices?.length) || (hasTicket && (ticket.total === null || needsPickupDetails));
   const message = statusMessage(status === "done" && !hasTicket ? "ready" : status, recording.state, needsAttention);
+  const blockReason = confirmBlockReason(ticket);
+  const canConfirm = hasTicket && blockReason === null && !busy && !capturing && !confirming && !draft.cancellationChoices?.length;
 
   useEffect(() => {
     try {
@@ -152,6 +157,7 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
     retryRef.current = info;
     setCanRetry(false);
     setError("");
+    setConfirmNotice("");
     setEditor(null);
 
     try {
@@ -288,10 +294,38 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
     setTextEntry(false);
     setText("");
     setError("");
+    setConfirmNotice("");
     setCanRetry(false);
     retryRef.current = null;
     setStatus("ready");
     if (pickupPanelRef.current) pickupPanelRef.current.open = false;
+  }
+
+  // 注文を確定してDBに保存する。送るのは解析結果（手修正込み）で、金額はサーバが再計算する。
+  // 二重確定を防ぐため、同じ伝票では同じ Idempotency-Key を使い回す。
+  async function confirm() {
+    if (confirming || !canConfirm) return;
+    setConfirming(true);
+    setError("");
+    const key = confirmKeyRef.current ?? (confirmKeyRef.current = crypto.randomUUID());
+    try {
+      const result = await fetch("/api/orders/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order, idempotencyKey: key }),
+      });
+      const payload = await result.json();
+      if (!result.ok) throw new Error(payload.error);
+      confirmKeyRef.current = null;
+      if (draft.pickupId) savePickups(pickups.filter((entry) => entry.id !== draft.pickupId));
+      newOrder();
+      setConfirmNotice("注文を確定しました（合計 " + priceLabel(payload.total) + "）");
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "注文を確定できませんでした。もう一度お試しください。");
+      setStatus("error");
+    } finally {
+      setConfirming(false);
+    }
   }
 
   const section = [...catalog.products, ...catalog.sets.map((set) => ({ ...set, category: "set" }))]
@@ -333,6 +367,8 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
         <span>{error}</span>
         {canRetry && <button type="button" disabled={loading} onClick={() => { if (retryRef.current) void run(retryRef.current); }}>再試行</button>}
       </div>}
+
+      {confirmNotice && !hasTicket && <div className="success-banner" role="status"><span>{confirmNotice}</span></div>}
 
       <div className="workspace">
         <section className="menu-panel" aria-label="メニュー">
@@ -417,9 +453,13 @@ export default function Register({ browserRecording, catalog }: { browserRecordi
             <footer className="ticket-footer">
               <div><span>合計</span><strong>{ticket.total === null ? (hasTicket ? "—" : "¥0") : priceLabel(ticket.total)}</strong></div>
               {hasTicket && !showPickupForm && !needsAttention && !loading &&
-                <p className="counter-next-step">内容と合計を確認して、店頭で会計します。</p>}
+                <p className="counter-next-step">内容と合計を確認して、注文を確定します。</p>}
+              {hasTicket && blockReason && !loading &&
+                <p className="confirm-hint">{blockReason}</p>}
               {hasTicket && <div className="ticket-actions">
-                <button type="button" disabled={loading} onClick={newOrder}>次の注文を始める</button>
+                <button type="button" disabled={loading || confirming} onClick={newOrder}>次の注文を始める</button>
+                <button type="button" className="confirm-button" disabled={!canConfirm}
+                  onClick={() => void confirm()}>{confirming ? "確定中…" : "注文を確定"}</button>
               </div>}
             </footer>
           </section>
