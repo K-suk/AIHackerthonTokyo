@@ -71,10 +71,10 @@ export function orderItem(overrides: Partial<ParsedItem>): ParsedItem {
 }
 
 function menuChoices(ids: string[], catalog: Catalog): Correction[] {
-  return [...new Set(ids)].slice(0, 3).flatMap((id) => {
+  return [...new Set(ids)].flatMap((id) => {
     const item = productById(id, catalog) ?? setById(id, catalog);
-    return item ? [{ label: item.name, patch: { menuId: id, uncertain: false } }] : [];
-  });
+    return item && !item.discontinued && !item.soldOut ? [{ label: item.name, patch: { menuId: id, uncertain: false } }] : [];
+  }).slice(0, 3);
 }
 
 function temperatureAlternatives(
@@ -83,6 +83,7 @@ function temperatureAlternatives(
   catalog: Catalog,
 ): Correction[] {
   const alternatives = catalog.products.filter((product) =>
+    !product.soldOut && !product.discontinued &&
     product.temperature === item.temperature &&
     product.category === target?.category &&
     product.name.replace(/^(アイス|ホット)/, "") === target.name.replace(/^(アイス|ホット)/, "")
@@ -104,6 +105,13 @@ function validateLine(item: ParsedItem, catalog: Catalog): TicketLine {
     issues.push({ message: "該当する商品を確認してください", choices: menuChoices(item.candidateIds, catalog) });
     return { item, name: item.raw || "未特定の商品", imageId: null, details, amount: null, issues };
   }
+  if (menuItem.discontinued || menuItem.soldOut) {
+    const pool = product ? catalog.products.filter((entry) => entry.category === product.category) : catalog.sets;
+    const alternatives = pool.filter((entry) => !entry.soldOut && !entry.discontinued).map((entry) => entry.id);
+    const message = menuItem.discontinued ? "販売終了した商品です" : "品切れです";
+    issues.push({ message, choices: menuChoices([...item.candidateIds, ...alternatives], catalog) });
+    return { item, name: menuItem.name, imageId: menuItem.id, details, amount: null, issues };
+  }
 
   if (item.uncertain) {
     issues.push({
@@ -115,12 +123,13 @@ function validateLine(item: ParsedItem, catalog: Catalog): TicketLine {
 
   const drinkChoice = set?.drinkChoices.find((choice) => choice.productId === item.drinkId);
   const drink = drinkChoice && productById(drinkChoice.productId, catalog);
-  if (set && !drink) {
+  if (set && (!drink || drink.discontinued || drink.soldOut)) {
     issues.push({
-      message: "セットドリンクを選んでください",
+      message: drink?.soldOut || drink?.discontinued ? "注文できるセットドリンクを選んでください" : "セットドリンクを選んでください",
       choices: set.drinkChoices.flatMap((choice) => {
         const candidate = productById(choice.productId, catalog);
-        return candidate ? [{ label: candidate.name, patch: { drinkId: candidate.id } }] : [];
+        return candidate && !candidate.discontinued && !candidate.soldOut
+          ? [{ label: candidate.name, patch: { drinkId: candidate.id } }] : [];
       }),
     });
   }

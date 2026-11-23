@@ -1,6 +1,6 @@
 import { menu } from "./menu";
 import type { VoiceCancellation } from "./order";
-import type { Catalog, Intent, ParsedEvent, ParsedOrder } from "./types";
+import type { Catalog, Intent, ParsedEvent, ParsedItem, ParsedOrder } from "./types";
 
 export type InterpretMode = "auto" | "order" | "event";
 
@@ -76,6 +76,8 @@ function serializeCatalog(catalog: Catalog): string {
     sets: catalog.sets.filter(({ discontinued }) => !discontinued).map(({ id, name, aliases, drinkChoices }) => ({
       id, name, aliases, drinkIds: drinkChoices.map(({ productId }) => productId).filter((id) => productIds.has(id)),
     })),
+    discontinuedNames: [...catalog.products, ...catalog.sets]
+      .filter(({ discontinued }) => discontinued).map(({ name, aliases }) => ({ name, aliases })),
     options: Object.fromEntries(Object.entries(catalog.options).map(([id, { name, aliases }]) => [id, { name, aliases }])),
     groups: catalog.optionGroups,
   });
@@ -103,9 +105,11 @@ function buildInstructions(catalog: Catalog, mode: InterpretMode): string {
     "複数の品目は別行。サイズ・温度・オプションが違う同じ商品も別行。数量の指定がなければ1。",
     "発話の明確な言い直しは後の内容を優先。明示されない温度・サイズはnull。",
     "トール=T、グランデ=G、ショート=S。『ラテ』は温度指定があれば対応する商品を選ぶ。",
+    "『の』や空白を除いて登録商品名や別名に一致する候補を優先する。温度が指定されず、温度名を含まない商品名に一致する場合は、その商品を選び、temperatureはnullにする。例：『抹茶のラテ、トールで』に『抹茶ラテ』と『ホット抹茶ラテ』が登録されていれば『抹茶ラテ』にし、ホットやアイスを補わない。",
     "セットのドリンクはdrinkIdに入れ、単品指定が無ければ別の商品行にしない。セットの追加指定は同じ行に入れる。",
     "セットドリンクの指定がなければdrinkId=null。セット以外のdrinkIdもnull。",
     "特定できた商品のrawとcandidateIdsは空にする。不明の商品はmenuId=nullにしてrawに短い商品名を残し、似ている商品があればcandidateIdsに最大3件入れる。迷いがあるときはuncertain=true。",
+    "発話が販売終了名（discontinuedNames）に該当する場合、別商品を自動で選ばない。menuId=null、rawに販売終了の商品名を入れ、販売中で似た商品のIDのみcandidateIdsに最大3件入れる。",
     "カタログにないカスタムや解釈できない注文断片はunparsedに原文を入れる。豆乳とオーツ両方などは両方のIDを返す。",
     "明示された温度で選べる商品の候補がなくても、該当商品のIDと指定温度を残す。",
     "pickupRequestedは、予約または後で受け取る指定があった場合だけtrue。持ち帰りという言葉だけでは予約にしない。",
@@ -147,6 +151,27 @@ async function fetchStructuredOrder(body: string, key: string, signal: AbortSign
   return JSON.parse(output) as Interpretation;
 }
 
+export function preferNamedProduct(items: ParsedItem[], text: string, catalog: Catalog): ParsedItem[] {
+  if (items.length !== 1 || /ホット|アイス|(?:温|暖)か|冷た/u.test(text)) return items;
+
+  const [item] = items;
+  const parsed = catalog.products.find(({ id }) => id === item.menuId);
+  const normalize = (value: string) => value.normalize("NFKC").replace(/[\sの]+/gu, "");
+  const unqualified = (value: string) => normalize(value).replace(/^(?:ホット|アイス)/u, "");
+  const spokenName = parsed?.temperature ? unqualified(parsed.name) : item.menuId === null ? normalize(item.raw) : "";
+  if (!spokenName || !normalize(text).includes(spokenName)) return items;
+  const exact = catalog.products.find((entry) =>
+    !entry.temperature && [entry.name, ...entry.aliases].some((name) => normalize(name) === spokenName),
+  );
+  if (!exact) return items;
+
+  const candidateIds = exact.discontinued
+    ? catalog.products.filter((entry) => !entry.discontinued && !entry.soldOut && unqualified(entry.name) === spokenName)
+      .map(({ id }) => id)
+    : [];
+  return [{ ...item, menuId: exact.id, temperature: null, raw: "", uncertain: false, candidateIds }];
+}
+
 export async function interpretOrder(
   text: string,
   signal: AbortSignal,
@@ -181,6 +206,7 @@ export async function interpretOrder(
     return { ...order, items: [], cancellations: [], pickupRequested: false, customerName: null, pickupTime: null, pickupDate: null };
   }
   order.event = null;
+  order.items = preferNamedProduct(order.items, text, catalog);
   if (!order.pickupRequested) {
     return { ...order, customerName: null, pickupTime: null, pickupDate: null };
   }

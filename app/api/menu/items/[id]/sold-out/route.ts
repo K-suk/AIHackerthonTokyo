@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { inventoryError, inventoryStaff } from "@/app/api/inventory/access";
 import { clearCatalogCache, lockCatalog, writeLockedCatalog } from "@/lib/db/catalog";
 import { withTransaction } from "@/lib/db/client";
@@ -23,6 +24,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     });
     if (!found) return Response.json({ error: "商品が見つかりません。" }, { status: 404 });
     clearCatalogCache();
+    revalidatePath("/");
+    revalidatePath("/admin/menu");
     return Response.json({ soldOut: body.data.soldOut });
   } catch (error) {
     return inventoryError(error);
