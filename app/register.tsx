@@ -22,7 +22,8 @@ const todayInTokyo = () => new Intl.DateTimeFormat("sv-SE", { dateStyle: "short"
 
 type Pickup = { id: string; date: string; time: string; name: string; ticket: Ticket; transcript: string };
 type Draft = { ticket: Ticket; transcript: string; pickupId?: string };
-type RequestInfo = { sample: string } | { transcript: string } | { audio: Blob; recordingId: string };
+type VoiceInput = { transcript: string } | { audio: Blob; recordingId: string };
+type RequestInfo = { sample: string } | (VoiceInput & { additionTo?: Draft });
 type Status = "ready" | "transcribing" | "analyzing" | "done" | "error";
 type Category = typeof categories[number]["id"];
 
@@ -63,7 +64,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
   const { order } = ticket;
   const hasTicket = ticket.lines.length > 0 || order.unparsed.length > 0;
   const recording = useRecording(
-    (audio) => void run({ audio, recordingId: crypto.randomUUID() }),
+    (audio) => void run({ audio, recordingId: crypto.randomUUID(), additionTo: hasTicket ? draft : undefined }),
     fail,
     (level) => waveformRef.current?.style.setProperty("--level", String(Math.min(1.22, .35 + level * 6))),
   );
@@ -129,14 +130,16 @@ export default function Register({ browserRecording }: { browserRecording: boole
     if (requestRef.current) return;
     const request = new AbortController();
     requestRef.current = request;
-    const deadline = window.setTimeout(() => request.abort(new DOMException("Order processing timed out", "TimeoutError")), 10_000);
+    const deadline = window.setTimeout(() => request.abort(new DOMException("Order processing timed out", "TimeoutError")), "audio" in info ? 36_000 : 10_000);
     retryRef.current = info;
     setCanRetry(false);
     setError("");
     setEditor(null);
 
     try {
-      let body: { sample: string } | { transcript: string };
+      const base = "additionTo" in info ? info.additionTo : undefined;
+      const existingItems = base?.ticket.lines.map((line) => [line.name + " ×" + line.item.quantity, ...line.details].join("、"));
+      let body: { sample: string } | { transcript: string; existingItems?: string[] };
       if ("audio" in info) {
         setStatus("transcribing");
         const form = new FormData();
@@ -146,12 +149,12 @@ export default function Register({ browserRecording }: { browserRecording: boole
         const payload = await result.json();
         if (!result.ok) throw new Error(payload.error);
         const transcript = String(payload.text);
-        retryRef.current = { transcript };
-        setDraft((previous) => ({ ...previous, transcript }));
-        body = { transcript };
+        retryRef.current = { transcript, additionTo: base };
+        if (!base) setDraft((previous) => ({ ...previous, transcript }));
+        body = { transcript, existingItems };
       } else if ("transcript" in info) {
-        setDraft((previous) => ({ ...previous, transcript: info.transcript }));
-        body = { transcript: info.transcript };
+        if (!base) setDraft((previous) => ({ ...previous, transcript: info.transcript }));
+        body = { transcript: info.transcript, existingItems };
       } else {
         body = info;
       }
@@ -165,7 +168,25 @@ export default function Register({ browserRecording }: { browserRecording: boole
       });
       const payload = await result.json();
       if (!result.ok) throw new Error(payload.error);
-      updateDraft({ ticket: payload.ticket as Ticket, transcript: payload.transcript });
+      const nextTicket = payload.ticket as Ticket;
+      if (base) {
+        const previous = base.ticket.order;
+        const added = nextTicket.order;
+        updateDraft({
+          ...base,
+          ticket: buildTicket({
+            items: [...previous.items, ...added.items],
+            unparsed: [...previous.unparsed, ...added.unparsed],
+            pickupRequested: hasPickup(previous) || hasPickup(added),
+            customerName: previous.customerName || added.customerName,
+            pickupTime: previous.pickupTime || added.pickupTime,
+            pickupDate: previous.pickupDate || added.pickupDate,
+          }),
+          transcript: [base.transcript, payload.transcript].filter(Boolean).join("\n"),
+        });
+      } else {
+        updateDraft({ ticket: nextTicket, transcript: payload.transcript });
+      }
       retryRef.current = null;
       setTextEntry(false);
       setText("");
@@ -198,7 +219,11 @@ export default function Register({ browserRecording }: { browserRecording: boole
   }
 
   function toggleRecording() {
-    if (capturing) {
+    if (recording.state === "recording") {
+      recording.finish();
+      return;
+    }
+    if (recording.state === "requesting") {
       recording.cancel();
       return;
     }
@@ -236,7 +261,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
       <h1 className="brand"><Image src="/koereji-logo.svg" alt="声レジ" width={60} height={60} unoptimized /></h1>
       <button type="button" className="record-button" data-recording={capturing} disabled={busy} onClick={toggleRecording}>
         <span className="mic" aria-hidden="true" />
-        {capturing ? "録音を取り消す" : "録音開始"}
+        {recording.state === "recording" ? "録音を終了" : capturing ? "マイク準備を取り消す" : hasTicket ? "追加を録音" : "録音開始"}
       </button>
     </header>
 
@@ -246,11 +271,13 @@ export default function Register({ browserRecording }: { browserRecording: boole
           {[4, 8, 15, 10, 20, 12, 7].map((height, index) => <i key={index} style={{ height }} />)}
         </span>
         <div className="transcript" aria-live="polite">
-          {recording.state === "recording" ? "お客さんに注文を復唱してください" : draft.transcript || "注文を復唱すると、ここに内容が表示されます"}
+          {recording.state === "recording" ? "注文の会話を録音中。会話が終わったら「録音を終了」を押せます。" : draft.transcript || "お客さんの注文や店員とのやり取りを録音できます"}
         </div>
         <span className="voice-provider">Aqua Voice</span>
-        <button type="button" className="text-button" disabled={loading}
-          onClick={() => { setText(draft.transcript); setTextEntry(!textEntry); }} aria-expanded={textEntry}>テキスト入力</button>
+        {recording.state === "recording" ?
+          <button type="button" className="text-button" onClick={recording.cancel}>録音を取り消す</button> :
+          <button type="button" className="text-button" disabled={loading}
+            onClick={() => { setText(draft.transcript); setTextEntry(!textEntry); }} aria-expanded={textEntry}>テキスト入力</button>}
       </section>
 
       {textEntry && <form className="text-entry" onSubmit={submitText}>

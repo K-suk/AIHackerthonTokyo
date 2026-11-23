@@ -8,6 +8,8 @@ type Capture = {
 };
 
 const formats = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"];
+const endSilenceMs = 3800;
+const recordingLimitMs = 90_000;
 
 export function useRecording(
   onAudio: (audio: Blob) => void,
@@ -67,7 +69,7 @@ export function useRecording(
       }
 
       const mimeType = formats.find((format) => MediaRecorder.isTypeSupported(format));
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const recorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 64_000 });
       const analyser = context.createAnalyser();
       analyser.fftSize = 1024;
       context.createMediaStreamSource(stream).connect(analyser);
@@ -123,9 +125,9 @@ export function useRecording(
           voiceFrames = 0;
         }
 
-        if (speechStarted && (now - lastAudibleAt >= 1100 || now - startedAt >= 27_000)) {
+        if (speechStarted && (now - lastAudibleAt >= endSilenceMs || now - startedAt >= recordingLimitMs)) {
           stop(true);
-        } else if (!speechStarted && now - startedAt >= 9000) {
+        } else if (!speechStarted && now - startedAt >= 12_000) {
           stop(false);
           onError("声を検出できませんでした。マイクに近づいて再度お試しください。");
         } else {
@@ -148,5 +150,9 @@ export function useRecording(
     }
   }
 
-  return { state, start, cancel };
+  function finish() {
+    capture.current?.stop?.(true);
+  }
+
+  return { state, start, finish, cancel };
 }

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers,
       body: payload,
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(15_000)]),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(24_000)]),
     });
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {

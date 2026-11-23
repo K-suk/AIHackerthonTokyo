@@ -146,6 +146,33 @@
       "defaultSize": "T"
     },
     {
+      "id": "iced_coffee",
+      "name": "アイスコーヒー",
+      "aliases": [
+        "アイスのコーヒー",
+        "冷たいコーヒー"
+      ],
+      "category": "coffee",
+      "price": 450,
+      "optionGroupIds": [
+        "ice"
+      ],
+      "temperature": "ice"
+    },
+    {
+      "id": "hot_coffee",
+      "name": "ホットコーヒー",
+      "aliases": [
+        "ホットのコーヒー",
+        "温かいコーヒー",
+        "ドリップコーヒー"
+      ],
+      "category": "coffee",
+      "price": 420,
+      "optionGroupIds": [],
+      "temperature": "hot"
+    },
+    {
       "id": "cheesecake",
       "name": "チーズケーキ",
       "aliases": [

@@ -17,9 +17,16 @@ export async function POST(request: Request) {
       return Response.json({ error: "注文の内容を1〜1,200文字で入力してください。" }, { status: 400 });
     }
 
-    const order = await interpretOrder(transcript, request.signal);
+    const contextItems: unknown = body.existingItems;
+    const existingItems = Array.isArray(contextItems)
+      ? contextItems.slice(0, 24).filter((item): item is string => typeof item === "string").map((item) => item.slice(0, 180))
+      : undefined;
+    const order = await interpretOrder(transcript, request.signal, existingItems);
     if (order.items.length === 0 && order.unparsed.length === 0) {
-      return Response.json({ error: "注文が聞き取れませんでした。もう一度お試しください。" }, { status: 422 });
+      const error = existingItems
+        ? "追加の注文が聞き取れませんでした。現在の伝票からもう一度録音できます。"
+        : "注文が聞き取れませんでした。もう一度お試しください。";
+      return Response.json({ error }, { status: 422 });
     }
     return Response.json({ ticket: buildTicket(order), transcript });
   } catch (error) {

@@ -3,7 +3,7 @@ import "./styles.css";
 
 export const metadata: Metadata = {
   title: "声レジ",
-  description: "注文の復唱を写真付きの伝票に。",
+  description: "注文の会話を写真付きの伝票に。",
   icons: { icon: "/koereji-logo.svg" },
 };
 
