@@ -1,0 +1,33 @@
+{
+  "items": {
+    "iced_latte": {
+      "S": [{ "materialId": "milk", "qty": 160 }, { "materialId": "espresso_beans", "qty": 18 }],
+      "T": [{ "materialId": "milk", "qty": 200 }, { "materialId": "espresso_beans", "qty": 18 }],
+      "G": [{ "materialId": "milk", "qty": 260 }, { "materialId": "espresso_beans", "qty": 27 }]
+    },
+    "hot_latte": {
+      "S": [{ "materialId": "milk", "qty": 160 }, { "materialId": "espresso_beans", "qty": 18 }],
+      "T": [{ "materialId": "milk", "qty": 200 }, { "materialId": "espresso_beans", "qty": 18 }],
+      "G": [{ "materialId": "milk", "qty": 260 }, { "materialId": "espresso_beans", "qty": 27 }]
+    },
+    "cold_brew": {
+      "S": [{ "materialId": "cold_brew", "qty": 120 }],
+      "T": [{ "materialId": "cold_brew", "qty": 160 }],
+      "G": [{ "materialId": "cold_brew", "qty": 220 }]
+    },
+    "iced_coffee": { "default": [{ "materialId": "espresso_beans", "qty": 18 }] },
+    "hot_coffee": { "default": [{ "materialId": "espresso_beans", "qty": 15 }] },
+    "cheesecake": { "default": [{ "materialId": "cheesecake", "qty": 1 }] },
+    "croissant": { "default": [{ "materialId": "croissant", "qty": 1 }] },
+    "lunch_set": { "default": [{ "materialId": "sandwich", "qty": 1 }, { "materialId": "mini_salad", "qty": 1 }] },
+    "cake_set": { "default": [{ "materialId": "cheesecake", "qty": 1 }] }
+  },
+  "options": {
+    "oat_milk": [{ "materialId": "milk", "qty": -200 }, { "materialId": "oat_milk", "qty": 200 }],
+    "soy_milk": [{ "materialId": "milk", "qty": -200 }, { "materialId": "soy_milk", "qty": 200 }],
+    "extra_shot": [{ "materialId": "espresso_beans", "qty": 9 }],
+    "less_ice": [],
+    "vanilla_syrup": [{ "materialId": "vanilla_syrup", "qty": 20 }],
+    "less_sweet": [{ "materialId": "vanilla_syrup", "qty": -10 }]
+  }
+}
