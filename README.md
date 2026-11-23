@@ -18,3 +18,5 @@ npm run dev -- --hostname 127.0.0.1
 伝票の各商品の「編集」から、商品、数量、セットドリンク、サイズ、カスタマイズを手で訂正できます。変更後の金額はその場で合計に反映されます。
 
 モックメニューは `fukusho-menu-mock.json`、開発フェーズと完了条件は [実装計画](koe-register-implementation-plan.md) にあります。
+
+`DATABASE_URL` を設定すると、メニュー表示と注文解析はDBのカタログを優先します。既存のDBにモックの追加商品だけを取り込むには `npm run seed -- --add-missing-menu` を使います。登録済みの商品、オプション、材料在庫はそのままです。

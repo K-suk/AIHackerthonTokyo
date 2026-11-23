@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { applyVoiceCancellations, buildTicket, emptyOrder, orderItem } from "./order";
 
 const soyLatte = orderItem({ menuId: "iced_latte", optionIds: ["soy_milk"] });

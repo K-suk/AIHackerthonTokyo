@@ -1,10 +1,10 @@
 "use client";
 
-import { groupsFor, menu, optionById, priceLabel, productById, setById } from "@/lib/menu";
-import type { Product } from "@/lib/menu";
-import type { ParsedItem } from "@/lib/order";
+import { groupsFor, optionById, priceLabel, productById, setById } from "@/lib/menu";
+import type { Catalog, ParsedItem, Product } from "@/lib/types";
 
 type Props = {
+  catalog: Catalog;
   item: ParsedItem;
   index: number;
   disabled: boolean;
@@ -20,27 +20,27 @@ function supportedOptions(optionIds: string[], groups: ReturnType<typeof groupsF
   });
 }
 
-function compatibleSettings(item: ParsedItem, product?: Product) {
+function compatibleSettings(item: ParsedItem, product: Product | undefined, catalog: Catalog) {
   return {
     size: item.size && Object.hasOwn(product?.sizePrices ?? {}, item.size) ? item.size : null,
     temperature: null,
-    optionIds: supportedOptions(item.optionIds, groupsFor(product)),
+    optionIds: supportedOptions(item.optionIds, groupsFor(product, catalog)),
   };
 }
 
-export default function LineEditor({ item, index, disabled, onChange, onRemove }: Props) {
-  const set = setById(item.menuId);
-  const product = productById(set ? item.drinkId : item.menuId);
+export default function LineEditor({ catalog, item, index, disabled, onChange, onRemove }: Props) {
+  const set = setById(item.menuId, catalog);
+  const product = productById(set ? item.drinkId : item.menuId, catalog);
   const sizes = Object.keys(product?.sizePrices ?? {}) as NonNullable<ParsedItem["size"]>[];
-  const groups = groupsFor(product);
+  const groups = groupsFor(product, catalog);
   const id = "line-" + index;
   const menuId = set || product ? item.menuId ?? "" : "";
 
   function changeMenu(menuId: string) {
-    const nextSet = setById(menuId);
+    const nextSet = setById(menuId, catalog);
     const drinkId = nextSet?.drinkChoices.some((choice) => choice.productId === item.drinkId) ? item.drinkId : null;
     onChange({
-      ...compatibleSettings(item, productById(nextSet ? drinkId : menuId)),
+      ...compatibleSettings(item, productById(nextSet ? drinkId : menuId, catalog), catalog),
       menuId,
       drinkId,
       raw: "",
@@ -50,7 +50,7 @@ export default function LineEditor({ item, index, disabled, onChange, onRemove }
   }
 
   function changeDrink(drinkId: string | null) {
-    onChange({ ...compatibleSettings(item, productById(drinkId)), drinkId });
+    onChange({ ...compatibleSettings(item, productById(drinkId, catalog), catalog), drinkId });
   }
 
   function toggle(optionId: string) {
@@ -68,10 +68,12 @@ export default function LineEditor({ item, index, disabled, onChange, onRemove }
           onChange={(event) => changeMenu(event.currentTarget.value)}>
           <option value="" disabled>商品を選択</option>
           <optgroup label="単品">
-            {menu.products.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+            {catalog.products.filter((entry) => !entry.discontinued || entry.id === menuId)
+              .map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
           </optgroup>
           <optgroup label="セット">
-            {menu.sets.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+            {catalog.sets.filter((entry) => !entry.discontinued || entry.id === menuId)
+              .map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
           </optgroup>
         </select>
       </div>
@@ -94,9 +96,13 @@ export default function LineEditor({ item, index, disabled, onChange, onRemove }
         <select id={id + "-drink"} disabled={disabled} value={item.drinkId ?? ""}
           onChange={(event) => changeDrink(event.currentTarget.value || null)}>
           <option value="">選択してください</option>
-          {set.drinkChoices.map(({ productId, priceDiff }) => <option key={productId} value={productId}>
-            {productById(productId)?.name}{priceDiff > 0 ? " ＋" + priceLabel(priceDiff) : ""}
-          </option>)}
+          {set.drinkChoices.map(({ productId, priceDiff }) => {
+            const drink = productById(productId, catalog);
+            if (!drink || (drink.discontinued && drink.id !== item.drinkId)) return null;
+            return <option key={productId} value={productId}>
+              {drink.name}{priceDiff > 0 ? " ＋" + priceLabel(priceDiff) : ""}
+            </option>;
+          })}
         </select>
       </div>}
       {sizes.length > 0 && <div className="editor-field">
@@ -113,7 +119,7 @@ export default function LineEditor({ item, index, disabled, onChange, onRemove }
       <legend>{group.name}</legend>
       <div className="option-buttons">
         {group.optionIds.map((optionId) => {
-          const option = optionById(optionId);
+          const option = optionById(optionId, catalog);
           if (!option) return null;
           const selected = item.optionIds.includes(optionId);
           const requiresAnotherOption = group.requiresOptionId && !item.optionIds.includes(group.requiresOptionId);

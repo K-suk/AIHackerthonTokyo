@@ -3,9 +3,11 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { menu, priceLabel } from "@/lib/menu";
+import AppHeader from "@/components/AppHeader";
+import { priceLabel } from "@/lib/menu";
 import { applyVoiceCancellations, buildTicket, demos, emptyOrder, hasPickup, orderItem } from "@/lib/order";
 import type { CancellationChoice, ParsedItem, ParsedOrder, Ticket, VoiceCancellation } from "@/lib/order";
+import type { Catalog } from "@/lib/types";
 import LineEditor from "./line-editor";
 import { useRecording } from "./use-recording";
 
@@ -21,7 +23,6 @@ const categories = [
   { id: "food", label: "フード" },
 ] as const;
 
-const catalog = [...menu.products, ...menu.sets.map((set) => ({ ...set, category: "set" }))];
 const queueStorageKey = "koe-register:pickups:v1";
 const todayInTokyo = () => new Intl.DateTimeFormat("sv-SE", { dateStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date());
 
@@ -41,8 +42,10 @@ type Category = typeof categories[number]["id"];
 const emptyDraft: Draft = { ticket: buildTicket(emptyOrder), transcript: "" };
 
 function ImageTile({ id, thumbnail = false }: { id: string; thumbnail?: boolean }) {
+  const [failedId, setFailedId] = useState<string>();
   return <span className={thumbnail ? "thumbnail" : "product-photo"}>
-    <Image src={"/menu/" + id + ".jpg"} alt="" fill unoptimized />
+    {failedId !== id && <Image src={"/menu/" + encodeURIComponent(id) + ".jpg"} alt="" fill unoptimized
+      onError={() => setFailedId(id)} />}
   </span>;
 }
 
@@ -57,7 +60,7 @@ function statusMessage(status: Status, recording: ReturnType<typeof useRecording
   return "";
 }
 
-export default function Register({ browserRecording }: { browserRecording: boolean }) {
+export default function Register({ browserRecording, catalog }: { browserRecording: boolean; catalog: Catalog }) {
   const [category, setCategory] = useState<Category>("all");
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [pickups, setPickups] = useState<Pickup[]>([]);
@@ -188,7 +191,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
       if (base) {
         const previous = base.ticket.order;
         const added = nextTicket.order;
-        const revised = applyVoiceCancellations(base.ticket, cancellations);
+        const revised = applyVoiceCancellations(base.ticket, cancellations, catalog);
         updateDraft({
           ...base,
           ticket: buildTicket({
@@ -198,7 +201,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
             customerName: previous.customerName || added.customerName,
             pickupTime: previous.pickupTime || added.pickupTime,
             pickupDate: previous.pickupDate || added.pickupDate,
-          }),
+          }, catalog),
           transcript: [base.transcript, payload.transcript].filter(Boolean).join("\n"),
           cancellationChoices: revised.choices,
           cancellationNotice: revised.removedCount ? "注文を取り消しました。" : undefined,
@@ -227,7 +230,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
   }
 
   function editOrder(patch: Partial<ParsedOrder>) {
-    updateDraft({ ...draft, ticket: buildTicket({ ...order, ...patch }), cancellationChoices: undefined, cancellationNotice: undefined });
+    updateDraft({ ...draft, ticket: buildTicket({ ...order, ...patch }, catalog), cancellationChoices: undefined, cancellationNotice: undefined });
     setStatus("done");
   }
 
@@ -237,7 +240,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
       .map((choice) => ({ ...choice, candidates: choice.candidates.filter((line) => line.item !== item) }));
     updateDraft({
       ...draft,
-      ticket: item ? buildTicket({ ...order, items: order.items.filter((line) => line !== item) }) : ticket,
+      ticket: item ? buildTicket({ ...order, items: order.items.filter((line) => line !== item) }, catalog) : ticket,
       cancellationChoices: remaining,
       cancellationNotice: item ? "注文を取り消しました。" : draft.cancellationNotice,
     });
@@ -291,7 +294,8 @@ export default function Register({ browserRecording }: { browserRecording: boole
     if (pickupPanelRef.current) pickupPanelRef.current.open = false;
   }
 
-  const section = catalog.filter((product) => category === "all" || product.category === category);
+  const section = [...catalog.products, ...catalog.sets.map((set) => ({ ...set, category: "set" }))]
+    .filter((product) => !product.discontinued && (category === "all" || product.category === category));
   const loading = busy || capturing;
 
   return <main className="register">
@@ -302,6 +306,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
         {recording.state === "recording" ? "録音を終了" : capturing ? "マイク準備を取り消す" : hasTicket ? "追加・取消を録音" : "録音開始"}
       </button>
     </header>
+    <AppHeader />
 
     <div className="work-area">
       <section className="capture-bar" aria-label="音声入力">
@@ -397,7 +402,7 @@ export default function Register({ browserRecording }: { browserRecording: boole
                       onClick={() => updateItem(index, choice.patch)}>{choice.label}</button>)}
                   </div>}
                 </div>)}
-                {editor === index && <LineEditor index={index} item={line.item} disabled={loading}
+                {editor === index && <LineEditor catalog={catalog} index={index} item={line.item} disabled={loading}
                   onChange={(patch) => updateItem(index, patch)}
                   onRemove={() => { editOrder({ items: order.items.filter((_, i) => i !== index) }); setEditor(null); }} />}
               </article>)}
