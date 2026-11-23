@@ -1,5 +1,5 @@
 import { getCatalog } from "@/lib/db/catalog";
-import { interpretOrder, OrderServiceError } from "@/lib/interpret";
+import { interpretOrder, OrderServiceError, type InterpretMode } from "@/lib/interpret";
 import { buildTicket, demos } from "@/lib/order";
 
 // DB（カタログ）を読むため Node.js ランタイムで動かす（Edge にしない）。
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     if (typeof body.sample === "string") {
       const demo = demos.find(({ id }) => id === body.sample);
       if (!demo) return Response.json({ error: "サンプルが見つかりません。" }, { status: 400 });
-      return Response.json({ ticket: buildTicket(demo.order, catalog), transcript: demo.text });
+      return Response.json({ intent: "order", ticket: buildTicket(demo.order, catalog), transcript: demo.text });
     }
 
     const transcript = typeof body.transcript === "string" ? body.transcript.trim() : "";
@@ -27,14 +27,25 @@ export async function POST(request: Request) {
     const existingItems = Array.isArray(contextItems)
       ? contextItems.slice(0, 24).filter((item): item is string => typeof item === "string").map((item) => item.slice(0, 180))
       : undefined;
-    const { cancellations, ...order } = await interpretOrder(transcript, request.signal, catalog, existingItems);
+    const mode: InterpretMode = body.mode === "order" || body.mode === "event" ? body.mode : "auto";
+    const { cancellations, intent, event, ...order } = await interpretOrder(transcript, request.signal, catalog, existingItems, mode);
+
+    // 発話の振り分け：出来事・在庫は伝票を作らず、判定結果を返す（クライアントが処理する）。
+    if (intent === "event") {
+      if (!event) return Response.json({ error: "出来事を読み取れませんでした。もう一度お試しください。" }, { status: 422 });
+      return Response.json({ intent, event, transcript });
+    }
+    if (intent === "inventory") {
+      return Response.json({ intent, transcript });
+    }
+
     if (order.items.length === 0 && order.unparsed.length === 0 && cancellations.length === 0) {
       const error = existingItems
         ? "追加の注文が聞き取れませんでした。現在の伝票からもう一度録音できます。"
         : "注文が聞き取れませんでした。もう一度お試しください。";
       return Response.json({ error }, { status: 422 });
     }
-    return Response.json({ ticket: buildTicket(order, catalog), transcript, cancellations });
+    return Response.json({ intent: "order", ticket: buildTicket(order, catalog), transcript, cancellations });
   } catch (error) {
     if (error instanceof OrderServiceError) return Response.json({ error: error.message }, { status: error.status });
     if (error instanceof Error && error.name === "TimeoutError") {

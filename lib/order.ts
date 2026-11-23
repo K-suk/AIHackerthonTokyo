@@ -215,6 +215,16 @@ export function buildTicket(order: ParsedOrder, catalog: Catalog = menu): Ticket
   };
 }
 
+// 注文を確定できない理由を返す（確定可能なら null）。
+// クライアントのボタン制御と、サーバの確定前チェックで同じ判定を使う。
+export function confirmBlockReason(ticket: Ticket): string | null {
+  if (ticket.lines.length === 0) return "注文がありません";
+  if (ticket.order.unparsed.length > 0) return "確認できなかった内容を直すと確定できます";
+  if (ticket.lines.some((line) => line.issues.length > 0)) return "警告を解消すると確定できます";
+  if (ticket.total === null) return "金額を確定できません";
+  return null;
+}
+
 export const demos = [
   {
     id: "lunch",
