@@ -307,3 +307,47 @@ h1, h2, p { margin: 0; }
 @media (prefers-reduced-transparency: reduce) {
   .toolbar { background: #f8fbfa; backdrop-filter: none; }
 }
+
+/* 追加機能の共通ナビゲーションと仮ページ */
+.app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 10px max(24px, calc((100vw - 1392px) / 2));
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+.app-nav a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+}
+.app-nav a[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+.page { min-height: 100dvh; }
+.page-body {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px max(24px, calc((100vw - 1392px) / 2));
+  display: grid;
+  gap: 12px;
+}
+.page-body h1 { font-size: 1.4rem; }
+.placeholder {
+  color: var(--muted);
+  padding: 24px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+}
+
+/* 音声入力の共通部品 */
+.voice-input { display: grid; gap: 8px; }
