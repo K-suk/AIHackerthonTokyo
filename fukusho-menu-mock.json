@@ -1,0 +1,222 @@
+{
+  "currency": "JPY",
+  "options": {
+    "oat_milk": {
+      "name": "オーツミルクに変更",
+      "aliases": [
+        "オーツ",
+        "オーツミルクで"
+      ],
+      "priceDiff": 60
+    },
+    "soy_milk": {
+      "name": "豆乳に変更",
+      "aliases": [
+        "豆乳",
+        "ソイ"
+      ],
+      "priceDiff": 60
+    },
+    "extra_shot": {
+      "name": "ショット追加",
+      "aliases": [
+        "ショット足して",
+        "エスプレッソ追加"
+      ],
+      "priceDiff": 60
+    },
+    "less_ice": {
+      "name": "氷少なめ",
+      "aliases": [
+        "氷控えめ"
+      ],
+      "priceDiff": 0
+    },
+    "vanilla_syrup": {
+      "name": "バニラシロップ追加",
+      "aliases": [
+        "バニラ追加",
+        "バニラシロップ入り"
+      ],
+      "priceDiff": 50
+    },
+    "less_sweet": {
+      "name": "甘さ控えめ",
+      "aliases": [
+        "甘さ少なめ",
+        "シロップ半分"
+      ],
+      "priceDiff": 0
+    }
+  },
+  "optionGroups": {
+    "milk": {
+      "name": "ミルク",
+      "maxSelections": 1,
+      "optionIds": [
+        "oat_milk",
+        "soy_milk"
+      ]
+    },
+    "extras": {
+      "name": "追加",
+      "maxSelections": 2,
+      "optionIds": [
+        "extra_shot",
+        "vanilla_syrup"
+      ]
+    },
+    "ice": {
+      "name": "氷",
+      "maxSelections": 1,
+      "optionIds": [
+        "less_ice"
+      ]
+    },
+    "sweetness": {
+      "name": "甘さ",
+      "maxSelections": 1,
+      "optionIds": [
+        "less_sweet"
+      ],
+      "requiresOptionId": "vanilla_syrup"
+    }
+  },
+  "products": [
+    {
+      "id": "iced_latte",
+      "name": "アイスラテ",
+      "aliases": [
+        "アイスのカフェラテ"
+      ],
+      "category": "coffee",
+      "price": 500,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "ice",
+        "sweetness"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 450,
+        "T": 500,
+        "G": 550
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "hot_latte",
+      "name": "ホットラテ",
+      "aliases": [
+        "ホットのカフェラテ"
+      ],
+      "category": "coffee",
+      "price": 560,
+      "optionGroupIds": [
+        "milk",
+        "extras",
+        "sweetness"
+      ],
+      "temperature": "hot",
+      "sizePrices": {
+        "S": 510,
+        "T": 560,
+        "G": 610
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "cold_brew",
+      "name": "コールドブリュー",
+      "aliases": [
+        "水出しコーヒー"
+      ],
+      "category": "coffee",
+      "price": 520,
+      "optionGroupIds": [
+        "ice"
+      ],
+      "temperature": "ice",
+      "sizePrices": {
+        "S": 470,
+        "T": 520,
+        "G": 570
+      },
+      "defaultSize": "T"
+    },
+    {
+      "id": "cheesecake",
+      "name": "チーズケーキ",
+      "aliases": [
+        "チーズケーキ単品"
+      ],
+      "category": "food",
+      "price": 480,
+      "optionGroupIds": []
+    },
+    {
+      "id": "croissant",
+      "name": "クロワッサン",
+      "aliases": [],
+      "category": "food",
+      "price": 380,
+      "optionGroupIds": []
+    }
+  ],
+  "sets": [
+    {
+      "id": "lunch_set",
+      "name": "ランチセット",
+      "aliases": [
+        "ランチ",
+        "サンドイッチセット"
+      ],
+      "price": 980,
+      "includedItems": [
+        "サンドイッチ",
+        "ミニサラダ"
+      ],
+      "drinkChoices": [
+        {
+          "productId": "iced_latte",
+          "priceDiff": 0
+        },
+        {
+          "productId": "hot_latte",
+          "priceDiff": 0
+        },
+        {
+          "productId": "cold_brew",
+          "priceDiff": 50
+        }
+      ]
+    },
+    {
+      "id": "cake_set",
+      "name": "ケーキセット",
+      "aliases": [
+        "チーズケーキセット",
+        "ケーキとドリンクのセット"
+      ],
+      "price": 850,
+      "includedItems": [
+        "チーズケーキ"
+      ],
+      "drinkChoices": [
+        {
+          "productId": "iced_latte",
+          "priceDiff": 0
+        },
+        {
+          "productId": "hot_latte",
+          "priceDiff": 0
+        },
+        {
+          "productId": "cold_brew",
+          "priceDiff": 50
+        }
+      ]
+    }
+  ]
+}
