@@ -1,43 +1,16 @@
 import { groupsFor, menu, optionById, productById, setById } from "./menu";
-import type { Size, Temperature } from "./menu";
+import type { Catalog } from "./menu";
+import type {
+  Correction,
+  Issue,
+  ParsedItem,
+  ParsedOrder,
+  Ticket,
+  TicketLine,
+} from "./types";
 
-export type ParsedItem = {
-  raw: string;
-  menuId: string | null;
-  quantity: number;
-  size: Size | null;
-  temperature: Temperature | null;
-  drinkId: string | null;
-  optionIds: string[];
-  candidateIds: string[];
-  uncertain: boolean;
-};
-
-export type ParsedOrder = {
-  items: ParsedItem[];
-  pickupRequested?: boolean;
-  customerName: string | null;
-  pickupTime: string | null;
-  pickupDate: string | null;
-  unparsed: string[];
-};
-
-export type Correction = { label: string; patch: Partial<ParsedItem> };
-export type Issue = { message: string; choices: Correction[]; uncertain?: boolean };
-export type TicketLine = {
-  item: ParsedItem;
-  name: string;
-  imageId: string | null;
-  details: string[];
-  amount: number | null;
-  issues: Issue[];
-};
-
-export type Ticket = {
-  order: ParsedOrder;
-  lines: TicketLine[];
-  total: number | null;
-};
+// 型は lib/types.ts に集約。既存の import 互換のため再 export する。
+export type { Correction, Issue, ParsedItem, ParsedOrder, Ticket, TicketLine } from "./types";
 
 export const emptyOrder: ParsedOrder = {
   items: [],
@@ -67,52 +40,56 @@ export function orderItem(overrides: Partial<ParsedItem>): ParsedItem {
   };
 }
 
-function menuChoices(ids: string[]): Correction[] {
+function menuChoices(ids: string[], catalog: Catalog): Correction[] {
   return [...new Set(ids)].slice(0, 3).flatMap((id) => {
-    const item = productById(id) ?? setById(id);
+    const item = productById(id, catalog) ?? setById(id, catalog);
     return item ? [{ label: item.name, patch: { menuId: id, uncertain: false } }] : [];
   });
 }
 
-function temperatureAlternatives(item: ParsedItem, target: ReturnType<typeof productById>): Correction[] {
-  const alternatives = menu.products.filter((product) =>
+function temperatureAlternatives(
+  item: ParsedItem,
+  target: ReturnType<typeof productById>,
+  catalog: Catalog,
+): Correction[] {
+  const alternatives = catalog.products.filter((product) =>
     product.temperature === item.temperature &&
     product.category === target?.category &&
     product.name.replace(/^(アイス|ホット)/, "") === target.name.replace(/^(アイス|ホット)/, "")
   );
   return alternatives.map((product) => ({
     label: product.name,
-    patch: setById(item.menuId) ? { drinkId: product.id } : { menuId: product.id },
+    patch: setById(item.menuId, catalog) ? { drinkId: product.id } : { menuId: product.id },
   }));
 }
 
-function validateLine(item: ParsedItem): TicketLine {
-  const product = productById(item.menuId);
-  const set = setById(item.menuId);
+function validateLine(item: ParsedItem, catalog: Catalog): TicketLine {
+  const product = productById(item.menuId, catalog);
+  const set = setById(item.menuId, catalog);
   const menuItem = product ?? set;
   const issues: Issue[] = [];
   const details = set ? [set.includedItems.join("・")] : [];
 
   if (!menuItem) {
-    issues.push({ message: "該当する商品を確認してください", choices: menuChoices(item.candidateIds) });
+    issues.push({ message: "該当する商品を確認してください", choices: menuChoices(item.candidateIds, catalog) });
     return { item, name: item.raw || "未特定の商品", imageId: null, details, amount: null, issues };
   }
 
   if (item.uncertain) {
     issues.push({
       message: "商品が合っているか確認してください",
-      choices: menuChoices([menuItem.id, ...item.candidateIds]),
+      choices: menuChoices([menuItem.id, ...item.candidateIds], catalog),
       uncertain: true,
     });
   }
 
   const drinkChoice = set?.drinkChoices.find((choice) => choice.productId === item.drinkId);
-  const drink = drinkChoice && productById(drinkChoice.productId);
+  const drink = drinkChoice && productById(drinkChoice.productId, catalog);
   if (set && !drink) {
     issues.push({
       message: "セットドリンクを選んでください",
       choices: set.drinkChoices.flatMap((choice) => {
-        const candidate = productById(choice.productId);
+        const candidate = productById(choice.productId, catalog);
         return candidate ? [{ label: candidate.name, patch: { drinkId: candidate.id } }] : [];
       }),
     });
@@ -123,7 +100,7 @@ function validateLine(item: ParsedItem): TicketLine {
     issues.push({
       message: "この温度は選べません",
       choices: [
-        ...temperatureAlternatives(item, target),
+        ...temperatureAlternatives(item, target, catalog),
         { label: target.temperature === "hot" ? "ホットのまま" : target.temperature === "ice" ? "アイスのまま" : "指定なし", patch: { temperature: null } },
       ],
     });
@@ -144,7 +121,7 @@ function validateLine(item: ParsedItem): TicketLine {
 
   let optionsTotal = 0;
   const uniqueOptionIds = [...new Set(item.optionIds)];
-  const groups = groupsFor(target);
+  const groups = groupsFor(target, catalog);
   if (target) {
     for (const group of groups) {
       const selected = uniqueOptionIds.filter((id) => group.optionIds.includes(id));
@@ -152,7 +129,7 @@ function validateLine(item: ParsedItem): TicketLine {
         issues.push({
           message: group.name + "の組み合わせを確認してください",
           choices: selected.flatMap((id) => {
-            const option = optionById(id);
+            const option = optionById(id, catalog);
             return option ? [{
               label: option.name,
               patch: { optionIds: uniqueOptionIds.filter((current) => current === id || !group.optionIds.includes(current)) },
@@ -175,13 +152,13 @@ function validateLine(item: ParsedItem): TicketLine {
     const unsupported = uniqueOptionIds.filter((id) => !groups.some((group) => group.optionIds.includes(id)));
     if (unsupported.length > 0) {
       issues.push({
-        message: "この商品では " + unsupported.map((id) => optionById(id)?.name ?? id).join("・") + " を選べません",
+        message: "この商品では " + unsupported.map((id) => optionById(id, catalog)?.name ?? id).join("・") + " を選べません",
         choices: [{ label: "選べない指定を外す", patch: { optionIds: uniqueOptionIds.filter((id) => !unsupported.includes(id)) } }],
       });
     }
   }
   for (const id of uniqueOptionIds) {
-    const option = optionById(id);
+    const option = optionById(id, catalog);
     if (!option || !groups.some((group) => group.optionIds.includes(id))) continue;
     details.push(option.name + (option.priceDiff > 0 ? " ＋¥" + option.priceDiff : ""));
     optionsTotal += option.priceDiff;
@@ -197,8 +174,8 @@ function validateLine(item: ParsedItem): TicketLine {
   };
 }
 
-export function buildTicket(order: ParsedOrder): Ticket {
-  const lines = order.items.map(validateLine);
+export function buildTicket(order: ParsedOrder, catalog: Catalog = menu): Ticket {
+  const lines = order.items.map((item) => validateLine(item, catalog));
   return {
     order,
     lines,
